@@ -1,3 +1,4 @@
+//src/app/api/auth/register/route.js
 import { NextResponse } from 'next/server';
 import dbConnect from '../../../../utils/dbConnect';
 import User from '../../../../models/User';

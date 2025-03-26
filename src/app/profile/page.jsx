@@ -1,4 +1,6 @@
+// src/app/profile/page.jsx
 "use client";
+
 import { useSession } from "next-auth/react";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -7,17 +9,17 @@ export default function ProfilePage() {
   const { data: session } = useSession();
   const router = useRouter();
 
-  // Stare pentru datele de fallback (autentificare tradițională)
+  // Fallback pentru datele profilului (pentru autentificare tradițională)
   const [localProfile, setLocalProfile] = useState({ username: "", email: "" });
   const [loading, setLoading] = useState(true);
 
-  // Stări pentru modul edit și câmpurile editabile
+  // Stări pentru modul editare și câmpurile editabile
   const [editable, setEditable] = useState(false);
   const [newUsername, setNewUsername] = useState("");
   const [newEmail, setNewEmail] = useState("");
   const [message, setMessage] = useState("");
 
-  // Citește datele salvate în localStorage
+  // La montare, încărcăm datele din localStorage (dacă există)
   useEffect(() => {
     const storedUsername = localStorage.getItem("username") || "";
     const storedEmail = localStorage.getItem("email") || "";
@@ -25,48 +27,70 @@ export default function ProfilePage() {
     setLoading(false);
   }, []);
 
-  // După ce datele au fost încărcate, initializează câmpurile pentru editare
+  // După ce datele inițiale sunt încărcate, inițializăm câmpurile editabile
   useEffect(() => {
     if (!loading) {
-      setNewUsername(session ? (session.user.name || session.user.email) : localProfile.username);
+      // Dacă există o sesiune NextAuth activă, folosim datele din aceasta;
+      // altfel, folosim datele fallback din localProfile.
+      setNewUsername(session ? session.user.name || session.user.email : localProfile.username);
       setNewEmail(session ? session.user.email : localProfile.email);
     }
   }, [loading, session, localProfile]);
 
-  // Redirect către /login dacă nu există sesiune și nici date locale
+  // Ascultă evenimentul "profileUpdate" pentru a sincroniza profilul local dacă a fost schimbat în altă parte (ex: după login)
+  useEffect(() => {
+    const handleProfileUpdate = (e) => {
+      const { username, email } = e.detail;
+      setLocalProfile({ username, email });
+    };
+    window.addEventListener("profileUpdate", handleProfileUpdate);
+    return () => {
+      window.removeEventListener("profileUpdate", handleProfileUpdate);
+    };
+  }, []);
+
+  // Dacă utilizatorul nu e logat deloc (nici sesiune, nici token), redirecționăm la /login
   useEffect(() => {
     if (!loading && !session && !localProfile.username) {
       router.push("/login");
     }
   }, [loading, session, localProfile.username, router]);
 
-  // Funcția ce face update profilului prin API-ul creat
+  // Funcția care trimite cererea de update profil la backend
   const updateProfile = async (e) => {
     e.preventDefault();
+    setMessage("");
+
+    // Construim headerul de autorizare în funcție de metoda de autentificare disponibilă
     const token = localStorage.getItem("token");
-    if (!token) {
-      setMessage("No token found. Please log in again.");
-      router.push("/login");
-      return;
+    const headers = { "Content-Type": "application/json" };
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
     }
 
+    // Trimitere cerere PATCH cu noile date
     const res = await fetch("/profile/update", {
       method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": "Bearer " + token,
-      },
+      headers,
+      credentials: "include", // trimite cookie-urile de sesiune dacă există
       body: JSON.stringify({ username: newUsername, email: newEmail }),
     });
 
     const data = await res.json();
     if (res.ok) {
       setMessage("Profile updated successfully!");
-      // Actualizează datele locale și în localStorage
+      // Actualizăm localStorage cu noile date
       localStorage.setItem("username", data.username);
       localStorage.setItem("email", data.email);
+      // Actualizăm starea locală a profilului cu noile valori
       setLocalProfile({ username: data.username, email: data.email });
       setEditable(false);
+      // Emiterea evenimentului pentru a informa și alte componente de modificare
+      window.dispatchEvent(
+        new CustomEvent("profileUpdate", {
+          detail: { username: data.username, email: data.email },
+        })
+      );
     } else {
       setMessage(data.msg || "Error updating profile");
     }
@@ -76,9 +100,9 @@ export default function ProfilePage() {
     return <p>Loading...</p>;
   }
 
-  // Folosește datele din sesiune sau din localStorage ca valori de afişare
-  const name = session ? (session.user.name || session.user.email) : localProfile.username;
-  const email = session ? session.user.email : localProfile.email;
+  // Determină ce date să afișeze în profil (sesiune sau fallback local)
+  const displayName = session ? session.user.name || session.user.email : localProfile.username;
+  const displayEmail = session ? session.user.email : localProfile.email;
 
   return (
     <div className="min-h-screen bg-gray-900 text-white flex flex-col items-center pt-16">
@@ -105,7 +129,10 @@ export default function ProfilePage() {
                 className="w-full p-2 rounded text-black"
               />
             </div>
-            <button type="submit" className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded mr-2">
+            <button
+              type="submit"
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded mr-2"
+            >
               Save
             </button>
             <button
@@ -119,16 +146,16 @@ export default function ProfilePage() {
         ) : (
           <div>
             <p className="mb-2">
-              <strong>Nume:</strong> {name || "Unavailable"}
+              <strong>Nume:</strong> {displayName || "Unavailable"}
             </p>
             <p className="mb-4">
-              <strong>Email:</strong> {email || "Unavailable"}
+              <strong>Email:</strong> {displayEmail || "Unavailable"}
             </p>
             <button
               onClick={() => setEditable(true)}
               className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded"
             >
-              Edit Profile
+              Editează Profilul
             </button>
           </div>
         )}

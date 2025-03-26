@@ -1,3 +1,4 @@
+//src/app/api/auth/login/route.js
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
@@ -44,7 +45,7 @@ export async function POST(request) {
     );
 
     // Returnează token-ul și username-ul utilizatorului în format JSON
-    return NextResponse.json({ token, username: user.username }, { status: 200 });
+    return NextResponse.json({ token, username: user.username, email: user.email }, { status: 200 });
   } catch (error) {
     console.error("Eroare la autentificare:", error);
     return NextResponse.json(

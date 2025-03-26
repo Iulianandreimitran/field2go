@@ -1,3 +1,4 @@
+// src/components/Header.jsx
 "use client";
 
 import { useSession, signOut } from "next-auth/react";
@@ -5,35 +6,40 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
 export default function Header() {
-  // Pentru autentificarea completă cu NextAuth (Google)
   const { data: session } = useSession();
   const router = useRouter();
 
-  // Pentru login-ul tradițional (stocat în localStorage)
+  // Starea pentru utilizatorul logat manual (nume din localStorage)
   const [localUsername, setLocalUsername] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
-    // Funcție care preia username-ul actualizat din localStorage
-    const updateUsername = () => {
-      const storedUsername = localStorage.getItem("username");
-      setLocalUsername(storedUsername || "");
+    // La montare, preluăm username-ul din localStorage (dacă există)
+    setLocalUsername(localStorage.getItem("username") || "");
+
+    // Actualizăm username-ul local dacă primim un eveniment "profileUpdate"
+    const handleProfileUpdate = (e) => {
+      const newUsername = e.detail?.username;
+      if (newUsername) {
+        setLocalUsername(newUsername);
+      } else {
+        // fallback dacă nu avem detalii: citim direct din localStorage
+        const storedUsername = localStorage.getItem("username");
+        setLocalUsername(storedUsername || "");
+      }
     };
-  
-    // La montarea componentei, adaugă listener-ul
-    window.addEventListener("usernameUpdate", updateUsername);
-  
-    // Șterge listenerul la demontarea componentei
+
+    window.addEventListener("profileUpdate", handleProfileUpdate);
     return () => {
-      window.removeEventListener("usernameUpdate", updateUsername);
+      window.removeEventListener("profileUpdate", handleProfileUpdate);
     };
   }, []);
-  
 
-  // Dacă există sesiune din NextAuth, folosește datele din ea;
-  // altfel, folosește username-ul din localStorage
+  // Determină numele de afișat în header
+  // Dacă există sesiune NextAuth, prioritar afișăm numele din sesiune;
+  // dacă nu, sau dacă numele local este disponibil (ex. după update), îl folosim pe cel local.
   const displayName = session
-    ? session.user.name || session.user.email
+    ? localUsername || session.user.name || session.user.email
     : localUsername || "Log in";
 
   function handleHeaderClick() {
@@ -50,10 +56,17 @@ export default function Header() {
 
   function handleLogOut() {
     if (session) {
+      // Logout pentru sesiunea NextAuth (Google/Credentials)
       signOut({ callbackUrl: "/" });
-    } else {
+      // Curățăm și eventualele date locale pentru consistență
       localStorage.removeItem("token");
       localStorage.removeItem("username");
+      localStorage.removeItem("email");
+    } else {
+      // Logout pentru autentificarea tradițională
+      localStorage.removeItem("token");
+      localStorage.removeItem("username");
+      localStorage.removeItem("email");
       window.location.reload();
     }
   }
@@ -65,7 +78,7 @@ export default function Header() {
       </div>
 
       {menuOpen && (
-        <div className="absolute right-0 mt-2 bg-gray-800 rounded shadow-md text-white w-40">
+        <div className="absolute right-0 mt-8 bg-gray-800 rounded shadow-md text-white w-40">
           <ul className="py-2">
             <li
               className="px-4 py-2 hover:bg-gray-700 cursor-pointer"

@@ -1,3 +1,4 @@
+// src/app/login/page.jsx
 "use client";
 
 import { useState } from "react";
@@ -12,52 +13,45 @@ export default function LoginPage() {
 
   async function handleSubmit(e) {
     e.preventDefault();
-    console.log("Submit button pressed. Email:", email, "Password:", password);
+    setMessage(""); // Resetăm eventualele mesaje anterioare
 
     try {
+      // Apel API pentru autentificare tradițională (JWT)
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
+      const data = await res.json();
 
-      console.log("Response status:", res.status);
-
-      let data;
-      try {
-        data = await res.json();
-      } catch (err) {
-        console.error("Răspuns invalid de la server (nu este JSON valid):", err);
-        setMessage("Eroare: Răspuns invalid de la server.");
-        return;
-      }
-      console.log("Response data:", data);
-
-      if (res.ok) {
+      if (!res.ok) {
+        // Dacă acreditările sunt greșite sau apare o eroare, afișăm mesajul de eroare
+        setMessage(data.msg || "Eroare la autentificare.");
+      } else {
+        // Autentificare reușită: stocăm token-ul și datele utilizatorului
         localStorage.setItem("token", data.token);
         localStorage.setItem("username", data.username);
-
-        // Emitere eveniment pentru actualizarea username-ului
-        window.dispatchEvent(new Event("usernameUpdate"));
-
+        localStorage.setItem("email", data.email);
+        // Dispecerizăm un eveniment pentru a informa alte componente (ex: Header) despre noul utilizator
+        window.dispatchEvent(
+          new CustomEvent("profileUpdate", {
+            detail: { username: data.username, email: data.email },
+          })
+        );
         setMessage("Autentificare reușită!");
-        // Redirecționează utilizatorul; Header-ul va afișa noul nume doar după refresh
-        router.push("/");
-      } else {
-        setMessage(data.msg || "Eroare la autentificare.");
+        router.push("/dashboard");
       }
     } catch (error) {
-      console.error("Eroare la trimiterea cererii:", error);
+      console.error("Eroare la conectarea cu serverul:", error);
       setMessage("Eroare de rețea sau server.");
     }
   }
-  
+
   function handleGoogleSignIn() {
-    console.log("Google sign in clicked");
-    signIn("google", { callbackUrl: "/" });
+    // Autentificare OAuth Google prin NextAuth
+    signIn("google", { callbackUrl: "/dashboard" });
   }
 
-  // login/page.jsx (doar secțiunea JSX relevantă)
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-900">
       <div className="p-8 bg-gray-800 rounded shadow-md w-96">
@@ -108,16 +102,12 @@ export default function LoginPage() {
           Sign in with Google
         </button>
 
-        {/* Link-ul pentru înregistrare */}
-        <div className="mt-4 text-center">
-          <span className="text-white">
-            Nu ai cont?{" "}
-            <a href="/register" className="text-blue-400 hover:underline">
-              Register
-            </a>
-          </span>
+        <div className="mt-4 text-center text-white">
+          Nu ai cont?{" "}
+          <a href="/register" className="text-blue-400 hover:underline">
+            Înregistrare
+          </a>
         </div>
-
       </div>
     </div>
   );
