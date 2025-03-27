@@ -17,13 +17,12 @@ export default function Header() {
     // La montare, preluăm username-ul din localStorage (dacă există)
     setLocalUsername(localStorage.getItem("username") || "");
 
-    // Actualizăm username-ul local dacă primim un eveniment "profileUpdate"
+    // Ascultăm evenimentul "profileUpdate"
     const handleProfileUpdate = (e) => {
       const newUsername = e.detail?.username;
       if (newUsername) {
         setLocalUsername(newUsername);
       } else {
-        // fallback dacă nu avem detalii: citim direct din localStorage
         const storedUsername = localStorage.getItem("username");
         setLocalUsername(storedUsername || "");
       }
@@ -35,13 +34,17 @@ export default function Header() {
     };
   }, []);
 
-  // Determină numele de afișat în header
-  // Dacă există sesiune NextAuth, prioritar afișăm numele din sesiune;
-  // dacă nu, sau dacă numele local este disponibil (ex. după update), îl folosim pe cel local.
+  // Numele de afișat în header
   const displayName = session
     ? localUsername || session.user.name || session.user.email
     : localUsername || "Log in";
 
+  // Navighează spre pagina /fields
+  function handleFieldsClick() {
+    router.push("/fields");
+  }
+
+  // Deschide/închide meniul
   function handleHeaderClick() {
     if (!session && !localUsername) {
       router.push("/login");
@@ -52,18 +55,19 @@ export default function Header() {
 
   function handleProfileClick() {
     router.push("/profile");
+    setMenuOpen(false);
   }
 
   function handleLogOut() {
     if (session) {
-      // Logout pentru sesiunea NextAuth (Google/Credentials)
+      // Logout pentru sesiunea NextAuth
       signOut({ callbackUrl: "/" });
-      // Curățăm și eventualele date locale pentru consistență
+      // Ștergem datele locale
       localStorage.removeItem("token");
       localStorage.removeItem("username");
       localStorage.removeItem("email");
     } else {
-      // Logout pentru autentificarea tradițională
+      // Logout pentru login tradițional
       localStorage.removeItem("token");
       localStorage.removeItem("username");
       localStorage.removeItem("email");
@@ -72,29 +76,40 @@ export default function Header() {
   }
 
   return (
-    <header className="bg-gray-900 text-white py-2 px-4 flex justify-end relative">
-      <div onClick={handleHeaderClick} className="cursor-pointer">
-        <span>{`Salut, ${displayName}`}</span>
-      </div>
+    <header className="bg-gray-900 text-white py-2 px-4 flex items-center justify-between relative">
+      {/* Buton stânga */}
+      <button
+        onClick={handleFieldsClick}
+        className="bg-pink-600 text-white px-3 py-1 rounded hover:bg-pink-700"
+      >
+        Vezi Terenuri
+      </button>
 
-      {menuOpen && (
-        <div className="absolute right-0 mt-8 bg-gray-800 rounded shadow-md text-white w-40">
-          <ul className="py-2">
-            <li
-              className="px-4 py-2 hover:bg-gray-700 cursor-pointer"
-              onClick={handleProfileClick}
-            >
-              Profile
-            </li>
-            <li
-              className="px-4 py-2 hover:bg-gray-700 cursor-pointer"
-              onClick={handleLogOut}
-            >
-              Log-out
-            </li>
-          </ul>
+      {/* Containerul pentru “Salut, [nume]” + dropdown */}
+      <div className="relative">
+        <div onClick={handleHeaderClick} className="cursor-pointer">
+          <span>{`Salut, ${displayName}`}</span>
         </div>
-      )}
+
+        {menuOpen && (
+          <div className="absolute top-full right-0 mt-2 bg-gray-800 rounded shadow-md text-white w-40">
+            <ul className="py-2">
+              <li
+                className="px-4 py-2 hover:bg-gray-700 cursor-pointer"
+                onClick={handleProfileClick}
+              >
+                Profile
+              </li>
+              <li
+                className="px-4 py-2 hover:bg-gray-700 cursor-pointer"
+                onClick={handleLogOut}
+              >
+                Log-out
+              </li>
+            </ul>
+          </div>
+        )}
+      </div>
     </header>
   );
 }

@@ -1,3 +1,4 @@
+// src/models/Field.js
 import mongoose from "mongoose";
 
 const FieldSchema = new mongoose.Schema(
@@ -7,7 +8,6 @@ const FieldSchema = new mongoose.Schema(
     sportType: { type: String, required: true },
     pricePerHour: { type: Number, required: true },
     description: { type: String },
-    // Adăugăm un camp coordonate
     coordinates: {
       lat: { type: Number, required: true },
       lng: { type: Number, required: true },
