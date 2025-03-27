@@ -13,6 +13,10 @@ export default function ProfilePage() {
   const [localProfile, setLocalProfile] = useState({ username: "", email: "" });
   const [loading, setLoading] = useState(true);
 
+  // Stări pentru afișarea datelor în centrul paginii
+  const [displayName, setDisplayName] = useState("");
+  const [displayEmail, setDisplayEmail] = useState("");
+
   // Stări pentru modul editare și câmpurile editabile
   const [editable, setEditable] = useState(false);
   const [newUsername, setNewUsername] = useState("");
@@ -30,18 +34,37 @@ export default function ProfilePage() {
   // După ce datele inițiale sunt încărcate, inițializăm câmpurile editabile
   useEffect(() => {
     if (!loading) {
-      // Dacă există o sesiune NextAuth activă, folosim datele din aceasta;
-      // altfel, folosim datele fallback din localProfile.
-      setNewUsername(session ? session.user.name || session.user.email : localProfile.username);
-      setNewEmail(session ? session.user.email : localProfile.email);
+      if (session) {
+        setNewUsername(session.user.name || session.user.email);
+        setNewEmail(session.user.email);
+      } else {
+        setNewUsername(localProfile.username);
+        setNewEmail(localProfile.email);
+      }
     }
   }, [loading, session, localProfile]);
 
-  // Ascultă evenimentul "profileUpdate" pentru a sincroniza profilul local dacă a fost schimbat în altă parte (ex: după login)
+  // Actualizează valorile afișate în centru (displayName și displayEmail)
+  useEffect(() => {
+    if (!loading) {
+      if (session) {
+        setDisplayName(session.user.name || session.user.email);
+        setDisplayEmail(session.user.email);
+      } else {
+        setDisplayName(localProfile.username);
+        setDisplayEmail(localProfile.email);
+      }
+    }
+  }, [loading, session, localProfile]);
+
+  // Ascultă evenimentul "profileUpdate" pentru a sincroniza profilul local dacă a fost schimbat în altă parte
   useEffect(() => {
     const handleProfileUpdate = (e) => {
       const { username, email } = e.detail;
       setLocalProfile({ username, email });
+      // De asemenea, actualizează valorile afișate
+      setDisplayName(username);
+      setDisplayEmail(email);
     };
     window.addEventListener("profileUpdate", handleProfileUpdate);
     return () => {
@@ -82,8 +105,18 @@ export default function ProfilePage() {
       // Actualizăm localStorage cu noile date
       localStorage.setItem("username", data.username);
       localStorage.setItem("email", data.email);
-      // Actualizăm starea locală a profilului cu noile valori
+      // Actualizăm starea locală a profilului și valorile afișate
       setLocalProfile({ username: data.username, email: data.email });
+      setDisplayName(data.username);
+      setDisplayEmail(data.email);
+
+      // Dacă avem session (Google / NextAuth), actualizăm local și session.user,
+      // astfel încât efectele ulterioare să nu rescrie cu valorile vechi.
+      if (session) {
+        session.user.name = data.username;
+        session.user.email = data.email;
+      }
+      
       setEditable(false);
       // Emiterea evenimentului pentru a informa și alte componente de modificare
       window.dispatchEvent(
@@ -99,10 +132,6 @@ export default function ProfilePage() {
   if (loading) {
     return <p>Loading...</p>;
   }
-
-  // Determină ce date să afișeze în profil (sesiune sau fallback local)
-  const displayName = session ? session.user.name || session.user.email : localProfile.username;
-  const displayEmail = session ? session.user.email : localProfile.email;
 
   return (
     <div className="min-h-screen bg-gray-900 text-white flex flex-col items-center pt-16">
