@@ -15,15 +15,15 @@ export default function ReserveFieldPage() {
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
 
-  // Rezervările existente (într-un caz real, s-ar prelua via API; aici folosim date demo)
+  // Rezervările existente
   const [reservations, setReservations] = useState([]);
 
   // Stări pentru data selectată și ora de start/durata
   const [selectedDate, setSelectedDate] = useState("");
-  const [startTime, setStartTime] = useState("");  // ex. "19:00"
-  const [duration, setDuration] = useState("2");   // durata în ore (implicit 2)
+  const [startTime, setStartTime] = useState("");  // ex. "14:00"
+  const [duration, setDuration] = useState("2");   // default 2 ore
 
-  // 1) Preluăm info despre terenul curent
+  // 1) Preluăm info despre teren
   useEffect(() => {
     async function fetchField() {
       try {
@@ -39,22 +39,19 @@ export default function ReserveFieldPage() {
     if (id) fetchField();
   }, [id]);
 
-  // 2) (Demo) Preluăm rezervările existente pentru teren – în producție am apela o rută API
+  // 2) (Demo) Preluăm rezervările existente – în producție le vei prelua din API
   useEffect(() => {
     const demoReservations = [
-      // Exemplu rezervare: 2025-06-02, ora 09:00-10:00
       { startTime: "2025-06-02T09:00:00", endTime: "2025-06-02T10:00:00" },
-      // Exemplu rezervare: 2025-06-02, ora 14:00-16:00
       { startTime: "2025-06-02T14:00:00", endTime: "2025-06-02T16:00:00" },
-      // Exemplu rezervare: 2025-06-03, ora 10:00-12:00 (altă zi)
       { startTime: "2025-06-03T10:00:00", endTime: "2025-06-03T12:00:00" },
     ];
     setReservations(demoReservations);
   }, []);
 
-  // 3) Când utilizatorul dă click pe un slot liber din orar (Timetable), setăm ora de start selectată
+  // 3) Când se face click pe un slot liber din Timetable, setăm ora de start
   const handleSlotClick = (hour) => {
-    const hourString = String(hour).padStart(2, "0"); // ex: 19 -> "19"
+    const hourString = String(hour).padStart(2, "0");
     setStartTime(`${hourString}:00`);
   };
 
@@ -63,16 +60,23 @@ export default function ReserveFieldPage() {
     e.preventDefault();
     setMessage("");
 
-    if (!session) {
-      // Dacă utilizatorul nu are sesiune NextAuth, verificăm token-ul JWT din login-ul personalizat
-      const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
-      if (!token) {
-        router.push("/login");
-        return;
-      }
-      // Dacă există un token JWT, considerăm utilizatorul autentificat (nu redirecționăm)
+    // Validare: rezervările se pot face doar pentru date viitoare
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const chosenDate = new Date(selectedDate);
+    if (chosenDate < today) {
+      setMessage("Rezervările se pot face doar pentru date viitoare.");
+      return;
     }
 
+    // Verificăm dacă suntem autentificați – fie prin NextAuth, fie manual cu token
+    const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+    if (!session && !token) {
+      router.push("/login");
+      return;
+    }
+
+    // Verificăm dacă data și ora sunt selectate
     if (!selectedDate) {
       setMessage("Te rog selectează data.");
       return;
@@ -82,13 +86,14 @@ export default function ReserveFieldPage() {
       return;
     }
 
-    // Construim datele de început și sfârșit pe baza datei și orei selectate
+    // Construim datele de început și sfârșit
     const [year, month, day] = selectedDate.split("-").map(Number);
     const [hour, minute] = startTime.split(":").map(Number);
     const startDate = new Date(year, month - 1, day, hour, minute, 0);
     const endDate = new Date(startDate);
     endDate.setHours(endDate.getHours() + parseInt(duration, 10));
 
+    // Construim payload-ul pentru rezervare (status va fi "pending" setat pe server)
     const payload = {
       fieldId: id,
       reservedDate: selectedDate,
@@ -98,12 +103,9 @@ export default function ReserveFieldPage() {
 
     try {
       const headers = { "Content-Type": "application/json" };
-      // Dacă există un token JWT (login manual), îl adăugăm în antetul Authorization
-      const jwtToken = typeof window !== "undefined" ? localStorage.getItem("token") : null;
-      if (jwtToken) {
-        headers["Authorization"] = `Bearer ${jwtToken}`;
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
       }
-      // Efectuăm cererea POST la /api/reservations, incluzând token-ul JWT (dacă există) și cookie-ul de sesiune (pentru NextAuth)
       const res = await fetch("/api/reservations", {
         method: "POST",
         headers,
@@ -112,10 +114,12 @@ export default function ReserveFieldPage() {
       });
       const data = await res.json();
       if (res.ok) {
-        setMessage("Rezervarea a fost efectuată cu succes!");
-        // Adăugăm noua rezervare în starea locală pentru actualizarea imediată a orarului (slotul devine roșu)
-        const newReservation = data.reservation || payload;
-        setReservations((prev) => [...prev, newReservation]);
+        // Rezervare creată cu succes => calculează suma totală de plată
+        // Folosim prețul terenului (pricePerHour) și durata rezervată
+        const totalPriceLei = field.pricePerHour * parseInt(duration, 10); // ex. 240 lei
+        const amountInBani = totalPriceLei * 100; // Stripe așteaptă suma în cenți
+        // Redirecționăm către pagina de plată cu reservationId și amount ca parametri
+        router.push(`/payment?reservationId=${data.reservation._id}&amount=${amountInBani}`);
       } else {
         setMessage(data.msg || "Rezervare eșuată");
       }
@@ -153,35 +157,54 @@ export default function ReserveFieldPage() {
           <strong>Adresă:</strong> {field.location}
         </p>
 
-        {/* Formular rezervare */}
         <div className="mb-6">
           <label className="block font-semibold mb-1">Alege data:</label>
           <input
             type="date"
             value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value)}
+            onChange={(e) => {
+              setSelectedDate(e.target.value);
+              setStartTime("");
+            }}
             className="p-2 rounded bg-gray-700 text-white w-full"
           />
         </div>
 
-        <div className="mb-6">
-          <label className="block font-semibold mb-1">Alege ora de start (click pe orar):</label>
-          <Timetable
-            reservations={reservations}
-            date={selectedDate}
-            startHour={8}
-            endHour={22}
-            onSlotClick={handleSlotClick}
-          />
-        </div>
+        {selectedDate && (
+          <>
+            <label className="block font-semibold mb-1">
+              Alege ora de start (click pe orar):
+            </label>
+            <Timetable
+              reservations={reservations}
+              date={selectedDate}
+              startHour={8}
+              endHour={22}
+              onSlotClick={handleSlotClick}
+            />
+          </>
+        )}
 
-        <form onSubmit={handleReservationSubmit}>
+        <form onSubmit={handleReservationSubmit} className="mt-4">
+          <div className="mb-4">
+            <label className="block font-semibold mb-1">
+              Ora de start selectată:
+            </label>
+            <input
+              type="text"
+              value={startTime}
+              onChange={(e) => setStartTime(e.target.value)}
+              className="p-2 rounded bg-gray-700 text-white w-full"
+              readOnly
+            />
+          </div>
+
           <div className="mb-4">
             <label className="block font-semibold mb-1">Durată (ore):</label>
             <select
               value={duration}
               onChange={(e) => setDuration(e.target.value)}
-              className="p-2 rounded bg-gray-700 text-white"
+              className="p-2 rounded bg-gray-700 text-white w-full"
             >
               <option value="1">1 oră</option>
               <option value="2">2 ore</option>
@@ -189,11 +212,11 @@ export default function ReserveFieldPage() {
             </select>
           </div>
 
-          {message && <p className="mb-4">{message}</p>}
+          {message && <p className="mb-4 text-red-400">{message}</p>}
 
           <button
             type="submit"
-            className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded"
+            className="bg-pink-600 px-4 py-2 rounded hover:bg-pink-700"
           >
             Rezervă
           </button>

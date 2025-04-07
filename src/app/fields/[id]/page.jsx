@@ -69,64 +69,67 @@ export default function ReserveFieldPage() {
   };
 
   // 4) Submit rezervare – modificat pentru a verifica sesiunea sau tokenul manual
-  const handleReservationSubmit = async (e) => {
-    e.preventDefault();
-    setMessage("");
+  // ... în src/app/fields/[id]/reserve/page.jsx
+const handleReservationSubmit = async (e) => {
+  e.preventDefault();
+  setMessage("");
 
-    // Verifică dacă ești logat prin NextAuth sau manual (token în localStorage)
-    const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
-    if (!session && !token) {
-      router.push("/login");
-      return;
-    }
+  // Verificăm dacă suntem logați (NextAuth sau manual)
+  const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+  if (!session && !token) {
+    router.push("/login");
+    return;
+  }
 
-    if (!selectedDate) {
-      setMessage("Te rog selectează data.");
-      return;
-    }
-    if (!startTime) {
-      setMessage("Te rog alege un slot orar liber.");
-      return;
-    }
+  if (!selectedDate) {
+    setMessage("Te rog selectează data.");
+    return;
+  }
+  if (!startTime) {
+    setMessage("Te rog alege un slot orar liber.");
+    return;
+  }
 
-    // Construim obiectele Date corecte
-    const [year, month, day] = selectedDate.split("-").map(Number);
-    const [hour, minute] = startTime.split(":").map(Number);
-    const startDate = new Date(year, month - 1, day, hour, minute, 0);
-    const endDate = new Date(startDate);
-    endDate.setHours(endDate.getHours() + parseInt(duration));
+  // Construim datele de început și sfârșit
+  const [year, month, day] = selectedDate.split("-").map(Number);
+  const [hour, minute] = startTime.split(":").map(Number);
+  const startDate = new Date(year, month - 1, day, hour, minute, 0);
+  const endDate = new Date(startDate);
+  endDate.setHours(endDate.getHours() + parseInt(duration, 10));
 
-    const payload = {
-      fieldId: id,
-      reservedDate: selectedDate,
-      startTime: startDate.toISOString(),
-      endTime: endDate.toISOString(),
-    };
+  const payload = {
+    fieldId: id,
+    reservedDate: selectedDate,
+    startTime: startDate.toISOString(),
+    endTime: endDate.toISOString(),
+  };
 
-    // Construim antetul – dacă avem token manual, îl trimitem
+  try {
     const headers = { "Content-Type": "application/json" };
     if (token) {
       headers["Authorization"] = `Bearer ${token}`;
     }
-
-    try {
-      const res = await fetch("/api/reservations", {
-        method: "POST",
-        headers,
-        body: JSON.stringify(payload),
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setMessage("Rezervarea a fost efectuată cu succes!");
-        setReservations((prev) => [...prev, payload]);
-      } else {
-        setMessage(data.msg || "Rezervare eșuată");
-      }
-    } catch (error) {
-      console.error("Eroare la rezervare:", error);
-      setMessage("Eroare de server");
+    const res = await fetch("/api/reservations", {
+      method: "POST",
+      headers,
+      credentials: "include",
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (res.ok) {
+      // În loc să actualizăm timetable-ul, redirecționăm către pagina de plată
+      const newReservation = data.reservation || payload;
+      // Transmite, de exemplu, reservationId prin query string
+      router.push(`/payment?reservationId=${newReservation._id}`);
+    } else {
+      setMessage(data.msg || "Rezervare eșuată");
     }
-  };
+  } catch (error) {
+    console.error("Eroare la rezervare:", error);
+    setMessage("Eroare de server");
+  }
+};
+
 
   if (loading) return <p>Se încarcă datele terenului...</p>;
   if (!field) return <p>Terenul nu a fost găsit.</p>;

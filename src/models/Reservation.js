@@ -1,5 +1,4 @@
 // src/models/Reservation.js
-// Schema Mongoose pentru rezervări (asociază un teren și un utilizator cu un interval orar)
 import mongoose from "mongoose";
 
 const ReservationSchema = new mongoose.Schema({
@@ -8,6 +7,10 @@ const ReservationSchema = new mongoose.Schema({
   reservedDate: { type: String, required: true },
   startTime: { type: Date, required: true },
   endTime: { type: Date, required: true },
+
+  // câmpuri noi
+  status: { type: String, default: "pending" }, // "pending", "paid", "cancelled"
+  expiresAt: { type: Date }, // data la care expiră rezervarea pending
 }, { timestamps: true });
 
 export default mongoose.models.Reservation || mongoose.model("Reservation", ReservationSchema);
