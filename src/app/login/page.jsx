@@ -13,7 +13,7 @@ export default function LoginPage() {
 
   async function handleSubmit(e) {
     e.preventDefault();
-    setMessage(""); // Resetăm eventualele mesaje anterioare
+    setMessage(""); // Resetăm mesajele
 
     try {
       // Apel API pentru autentificare tradițională (JWT)
@@ -25,17 +25,16 @@ export default function LoginPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        // Dacă acreditările sunt greșite sau apare o eroare, afișăm mesajul de eroare
         setMessage(data.msg || "Eroare la autentificare.");
       } else {
-        // Autentificare reușită: stocăm token-ul și datele utilizatorului
+        // Autentificare reușită: stocăm token-ul și detaliile utilizatorului, inclusiv role
         localStorage.setItem("token", data.token);
         localStorage.setItem("username", data.username);
         localStorage.setItem("email", data.email);
-        // Dispecerizăm un eveniment pentru a informa alte componente (ex: Header) despre noul utilizator
+        localStorage.setItem("role", data.role);
         window.dispatchEvent(
           new CustomEvent("profileUpdate", {
-            detail: { username: data.username, email: data.email },
+            detail: { username: data.username, email: data.email, role: data.role },
           })
         );
         setMessage("Autentificare reușită!");

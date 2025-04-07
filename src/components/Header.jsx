@@ -66,11 +66,13 @@ export default function Header() {
       localStorage.removeItem("token");
       localStorage.removeItem("username");
       localStorage.removeItem("email");
+      localStorage.removeItem("role");
     } else {
       // Logout pentru login tradițional
       localStorage.removeItem("token");
       localStorage.removeItem("username");
       localStorage.removeItem("email");
+      localStorage.removeItem("role");
       window.location.reload();
     }
   }

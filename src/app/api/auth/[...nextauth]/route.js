@@ -24,8 +24,8 @@ export const authOptions = {
         if (!isMatch) {
           throw new Error("Email sau parolă incorecte.");
         }
-        // Returnăm un obiect utilizator cu câmpurile necesare pentru sesiune
-        return { id: user._id.toString(), name: user.username, email: user.email };
+        // Returnăm obiectul utilizatorului, inclusiv rolul, pentru a fi salvat în token
+        return { id: user._id.toString(), name: user.username, email: user.email, role: user.role };
       },
     }),
     GoogleProvider({
@@ -38,29 +38,32 @@ export const authOptions = {
   pages: { signIn: "/login" },
   callbacks: {
     async jwt({ token, user, account }) {
-      // La fiecare autentificare nouă (user există), sincronizăm cu DB-ul
-      if (user) {
-        await dbConnect();
-        if (account?.provider === "google") {
-          // Autentificare prin Google
-          let existingUser = await User.findOne({ email: user.email });
-          if (!existingUser) {
-            // Creează un utilizator nou dacă nu există unul cu acest email
-            const randomPassword = Math.random().toString(36).slice(-8); // parole random generată
-            const hashedPassword = await bcrypt.hash(randomPassword, 10);
-            existingUser = await User.create({
-              username: user.name || user.email,
+      // Dacă utilizatorul tocmai s-a logat (prima intrare în sistem)
+      if (user && account) {
+        if (account.provider === "google") {
+          // Autentificare prin Google – asigurăm existența utilizatorului în baza de date
+          await dbConnect();
+          // Căutăm utilizatorul după email (dacă există deja un cont local cu acest email)
+          let dbUser = await User.findOne({ email: user.email });
+          if (!dbUser) {
+            // Dacă nu există, creăm un nou utilizator în DB cu rol "user"
+            const hashedPassword = await bcrypt.hash(user.email + process.env.NEXTAUTH_SECRET, 10);
+            dbUser = await User.create({
               email: user.email,
-              password: hashedPassword,
+              username: user.name || user.email,
+              password: hashedPassword,  // parolă random hash-uită, deoarece autentificarea se face prin Google
+              role: "user",
             });
           }
-          // Atașează informațiile utilizatorului din baza de date la token
-          token.id = existingUser._id.toString();
-          token.name = existingUser.username;
-          token.email = existingUser.email;
-        } else if (account?.provider === "credentials") {
-          // Autentificare cu credențiale (user provine deja din baza de date)
+          // Sincronizăm token-ul JWT NextAuth cu ID-ul și rolul din baza de date
+          token.id = dbUser._id.toString();
+          token.role = dbUser.role;
+          token.name = user.name;
+          token.email = user.email;
+        } else if (account.provider === "credentials") {
+          // Autentificare cu credențiale (email/parolă) prin NextAuth
           token.id = user.id;
+          token.role = user.role || "user";
           token.name = user.name;
           token.email = user.email;
         }
@@ -68,12 +71,11 @@ export const authOptions = {
       return token;
     },
     async session({ session, token }) {
-      // Atașează datele relevante la sesiunea de client
-      if (token) {
-        session.user.id = token.id;
-        session.user.name = token.name;
-        session.user.email = token.email;
-      }
+      // Atașează ID-ul și rolul utilizatorului la sesiune (accesibil pe client)
+      session.user.id = token.id;
+      session.user.name = token.name;
+      session.user.email = token.email;
+      session.user.role = token.role || "user";
       return session;
     },
   },

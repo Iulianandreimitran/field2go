@@ -1,4 +1,4 @@
-//src/app/api/auth/login/route.js
+// src/app/api/auth/login/route.js
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
@@ -22,35 +22,30 @@ export async function POST(request) {
     // Caută utilizatorul după email
     const user = await User.findOne({ email });
     if (!user) {
-      return NextResponse.json(
-        { msg: "Email sau parolă incorecte." },
-        { status: 400 }
-      );
+      return NextResponse.json({ msg: "Email sau parolă incorecte." }, { status: 400 });
     }
 
-    // Compară parola trimisă cu cea hash-uită
+    // Compară parola trimisă cu cea hash-uită din baza de date
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-      return NextResponse.json(
-        { msg: "Email sau parolă incorecte." },
-        { status: 400 }
-      );
+      return NextResponse.json({ msg: "Email sau parolă incorecte." }, { status: 400 });
     }
 
-    // Generează token-ul JWT
+    // Generează token-ul JWT care include ID-ul utilizatorului și rolul acestuia
     const token = jwt.sign(
-      { userId: user._id },
+      { userId: user._id, role: user.role },
       process.env.JWT_SECRET || "mySecret",
       { expiresIn: "1h" }
     );
+    // (Token-ul va fi transmis de client în antetul Authorization pentru cereri ulterioare protejate)
 
-    // Returnează token-ul și username-ul utilizatorului în format JSON
-    return NextResponse.json({ token, username: user.username, email: user.email }, { status: 200 });
+    // Returnează token-ul și detaliile utilizatorului (inclusiv rolul)
+    return NextResponse.json(
+      { token, username: user.username, email: user.email, role: user.role },
+      { status: 200 }
+    );
   } catch (error) {
     console.error("Eroare la autentificare:", error);
-    return NextResponse.json(
-      { msg: "Eroare de server.", error: error.message },
-      { status: 500 }
-    );
+    return NextResponse.json({ msg: "Eroare de server.", error: error.message }, { status: 500 });
   }
 }
