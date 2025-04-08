@@ -1,4 +1,3 @@
-// src/app/api/reservations/route.js
 import { NextResponse } from "next/server";
 import jwt from "jsonwebtoken";
 import dbConnect from "../../../utils/dbConnect";
@@ -14,16 +13,16 @@ export async function GET(request) {
     if (!fieldId) {
       return NextResponse.json({ msg: "fieldId is required" }, { status: 400 });
     }
-    // Preluăm toate rezervările pentru terenul respectiv
-    const allReservations = await Reservation.find({ field: fieldId });
-    // Filtrăm rezervările pending expirate (care au expirat deja)
-    const validReservations = allReservations.filter((res) => {
-      if (res.status === "pending" && res.expiresAt < new Date()) {
-        return false; // rezervare expirată – ignorăm
-      }
-      return true;
+    // Fetch only reservations that are paid or pending (not expired)
+    const now = new Date();
+    const reservations = await Reservation.find({
+      field: fieldId,
+      $or: [
+        { status: "paid" },
+        { status: "pending", expiresAt: { $gte: now } }
+      ]
     });
-    return NextResponse.json({ reservations: validReservations }, { status: 200 });
+    return NextResponse.json({ reservations }, { status: 200 });
   } catch (error) {
     console.error("Error fetching reservations:", error);
     return NextResponse.json(
@@ -36,17 +35,14 @@ export async function GET(request) {
 export async function POST(request) {
   try {
     await dbConnect();
-
     let userId = null;
     let userRole = "user";
-
-    // Încearcă să obțină sesiunea NextAuth
+    // Încearcă să obțină sesiunea utilizatorului (NextAuth) sau token JWT
     const session = await getServerSession(authOptions);
     if (session) {
       userId = session.user.id;
       userRole = session.user.role;
     } else {
-      // Fallback: verificăm token-ul JWT din antet
       const authHeader = request.headers.get("authorization");
       if (!authHeader) {
         return NextResponse.json({ msg: "Unauthorized" }, { status: 401 });
@@ -67,8 +63,7 @@ export async function POST(request) {
 
     const body = await request.json();
     const { fieldId, reservedDate, startTime, endTime } = body;
-
-    // Creează rezervarea cu status "pending" și expirare după 2 minute
+    // Creează rezervarea cu status "pending" și expirare peste 2 minute
     const newReservation = await Reservation.create({
       field: fieldId,
       user: userId,
@@ -76,9 +71,8 @@ export async function POST(request) {
       startTime: new Date(startTime),
       endTime: new Date(endTime),
       status: "pending",
-      expiresAt: new Date(Date.now() + 2 * 60 * 1000), // expiră în 2 minute
+      expiresAt: new Date(Date.now() + 2 * 60 * 1000)
     });
-
     return NextResponse.json(
       { msg: "Rezervare creată", reservation: newReservation },
       { status: 201 }
