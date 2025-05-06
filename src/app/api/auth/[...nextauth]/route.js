@@ -8,6 +8,7 @@ import bcrypt from "bcryptjs";
 
 export const authOptions = {
   providers: [
+    // Provider de autentificare cu email și parolă
     CredentialsProvider({
       name: "Credentials",
       credentials: {
@@ -16,18 +17,21 @@ export const authOptions = {
       },
       async authorize(credentials) {
         await dbConnect();
+        // Caută utilizatorul după email în MongoDB
         const user = await User.findOne({ email: credentials.email });
         if (!user) {
           throw new Error("Email sau parolă incorecte.");
         }
+        // Verifică parola folosind bcrypt comparând cu hash-ul din DB
         const isMatch = await bcrypt.compare(credentials.password, user.password);
         if (!isMatch) {
           throw new Error("Email sau parolă incorecte.");
         }
-        // Returnăm obiectul utilizatorului, inclusiv rolul, pentru a fi salvat în token
+        // Returnează obiectul utilizator (va fi inclus în JWT-ul de sesiune)
         return { id: user._id.toString(), name: user.username, email: user.email, role: user.role };
       },
     }),
+    // Provider OAuth Google
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
@@ -35,33 +39,35 @@ export const authOptions = {
   ],
   secret: process.env.NEXTAUTH_SECRET,
   session: { strategy: "jwt" },
-  pages: { signIn: "/login" },
+  pages: { signIn: "/login" },  // pagină personalizată de login
   callbacks: {
     async jwt({ token, user, account }) {
-      // Dacă utilizatorul tocmai s-a logat (prima intrare în sistem)
+      // Este apelat la fiecare generare/actualizare de JWT.
+      // La login inițial, dacă există `user` și `account`, înseamnă că utilizatorul tocmai s-a autentificat.
       if (user && account) {
         if (account.provider === "google") {
           // Autentificare prin Google – asigurăm existența utilizatorului în baza de date
           await dbConnect();
-          // Căutăm utilizatorul după email (dacă există deja un cont local cu acest email)
+          // Caută utilizator existent cu acest email
           let dbUser = await User.findOne({ email: user.email });
           if (!dbUser) {
-            // Dacă nu există, creăm un nou utilizator în DB cu rol "user"
-            const hashedPassword = await bcrypt.hash(user.email + process.env.NEXTAUTH_SECRET, 10);
+            // Dacă nu există, creează un nou utilizator cu rol "user" și parolă generată
+            const randomPassword = user.email + process.env.NEXTAUTH_SECRET; // parolă temporară
+            const hashedPassword = await bcrypt.hash(randomPassword, 10);
             dbUser = await User.create({
               email: user.email,
               username: user.name || user.email,
-              password: hashedPassword,  // parolă random hash-uită, deoarece autentificarea se face prin Google
+              password: hashedPassword,
               role: "user",
             });
           }
-          // Sincronizăm token-ul JWT NextAuth cu ID-ul și rolul din baza de date
+          // Sincronizează token-ul JWT cu ID-ul și rolul din baza de date
           token.id = dbUser._id.toString();
           token.role = dbUser.role;
           token.name = user.name;
           token.email = user.email;
         } else if (account.provider === "credentials") {
-          // Autentificare cu credențiale (email/parolă) prin NextAuth
+          // Autentificare cu email/parolă – ia ID-ul și rolul din obiectul utilizator returnat de authorize
           token.id = user.id;
           token.role = user.role || "user";
           token.name = user.name;
@@ -71,7 +77,8 @@ export const authOptions = {
       return token;
     },
     async session({ session, token }) {
-      // Atașează ID-ul și rolul utilizatorului la sesiune (accesibil pe client)
+      // Este apelat la fiecare apel către getSession / useSession.
+      // Atașează ID-ul și rolul din token la obiectul de sesiune, pentru a fi disponibile pe client.
       session.user.id = token.id;
       session.user.name = token.name;
       session.user.email = token.email;

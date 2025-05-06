@@ -1,18 +1,24 @@
 // src/app/layout.jsx
-"use client";
-
 import "./globals.css";
-import Header from "../components/Header";
-import { SessionProvider } from "next-auth/react";
+import Providers from "./providers";
+import Header from "@/components/Header";
+import ShowChatbot from "@/components/ShowChatbot";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "./api/auth/[...nextauth]/route";
 
-export default function RootLayout({ children }) {
+export default async function RootLayout({ children }) {
+  // Obținem sesiunea server-side pentru a o injecta în SessionProvider
+  const session = await getServerSession(authOptions);
+
   return (
     <html lang="ro">
       <body>
-        <SessionProvider>
+        <Providers session={session}>
           <Header />
           <main>{children}</main>
-        </SessionProvider>
+          {/* Chatbot-ul va afișa widget-ul doar dacă user-ul este autentificat */}
+          <ShowChatbot />
+        </Providers>
       </body>
     </html>
   );

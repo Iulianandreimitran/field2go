@@ -1,9 +1,8 @@
-// src/app/login/page.jsx
 "use client";
-
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
+import Link from "next/link";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -11,102 +10,83 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
 
+  // Gestionare login cu email/parolă
   async function handleSubmit(e) {
     e.preventDefault();
-    setMessage(""); // Resetăm mesajele
+    setMessage("");
 
-    try {
-      // Apel API pentru autentificare tradițională (JWT)
-      const res = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
-      const data = await res.json();
+    // Apelăm NextAuth signIn cu provider-ul "credentials"
+    const res = await signIn("credentials", {
+      redirect: false,
+      email,
+      password,
+    });
 
-      if (!res.ok) {
-        setMessage(data.msg || "Eroare la autentificare.");
-      } else {
-        // Autentificare reușită: stocăm token-ul și detaliile utilizatorului, inclusiv role
-        localStorage.setItem("token", data.token);
-        localStorage.setItem("username", data.username);
-        localStorage.setItem("email", data.email);
-        localStorage.setItem("role", data.role);
-        window.dispatchEvent(
-          new CustomEvent("profileUpdate", {
-            detail: { username: data.username, email: data.email, role: data.role },
-          })
-        );
-        setMessage("Autentificare reușită!");
-        router.push("/dashboard");
-      }
-    } catch (error) {
-      console.error("Eroare la conectarea cu serverul:", error);
-      setMessage("Eroare de rețea sau server.");
+    if (res?.error) {
+      setMessage("Eroare: " + res.error);
+    } else {
+      router.push("/dashboard");
     }
   }
 
+  // Gestionare login cu Google
   function handleGoogleSignIn() {
-    // Autentificare OAuth Google prin NextAuth
     signIn("google", { callbackUrl: "/dashboard" });
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-900">
-      <div className="p-8 bg-gray-800 rounded shadow-md w-96">
-        <h1 className="text-3xl font-bold mb-6 text-white text-center">Log-in</h1>
-        {message && <p className="mb-4 text-red-400">{message}</p>}
+    <div className="min-h-screen flex items-center justify-center bg-gray-900 p-4">
+      <div className="w-full max-w-md bg-gray-800 rounded-lg shadow-lg p-6">
+        <h1 className="text-3xl font-bold text-white text-center mb-6">Autentificare</h1>
+        {message && <p className="mb-4 text-red-400 text-center">{message}</p>}
 
-        <form onSubmit={handleSubmit} className="mb-4">
-          <div className="mb-4">
-            <label className="block mb-1 text-white">Email</label>
+        {/* Formular login credentials */}
+        <form onSubmit={handleSubmit} className="space-y-4 mb-6">
+          <div>
+            <label className="block text-white mb-1">Email</label>
             <input
               type="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
               required
-              placeholder="Introdu email-ul"
-              className="border border-gray-400 rounded w-full p-2 bg-gray-700 text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full px-3 py-2 bg-gray-700 text-white rounded"
+              placeholder="you@example.com"
             />
           </div>
-          <div className="mb-6">
-            <label className="block mb-1 text-white">Parolă</label>
+          <div>
+            <label className="block text-white mb-1">Parolă</label>
             <input
               type="password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
               required
-              placeholder="Introdu parola"
-              className="border border-gray-400 rounded w-full p-2 bg-gray-700 text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full px-3 py-2 bg-gray-700 text-white rounded"
+              placeholder="Parola"
             />
           </div>
           <button
             type="submit"
-            className="w-full py-2 px-4 bg-blue-600 text-white rounded hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full py-2 px-4 bg-green-600 text-white rounded hover:bg-green-700"
           >
-            Log-in
+            Log in
           </button>
         </form>
 
-        <div className="flex items-center my-4">
-          <div className="flex-grow border-t border-gray-600"></div>
-          <span className="mx-2 text-white">sau</span>
-          <div className="flex-grow border-t border-gray-600"></div>
-        </div>
-
+        {/* Buton login cu Google */}
         <button
           onClick={handleGoogleSignIn}
-          className="w-full py-2 px-4 bg-red-600 text-white rounded hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500"
+          className="w-full py-2 px-4 bg-blue-600 text-white rounded hover:bg-blue-700 mb-4"
         >
-          Sign in with Google
+          Autentificare cu Google
         </button>
 
-        <div className="mt-4 text-center text-white">
-          Nu ai cont?{" "}
-          <a href="/register" className="text-blue-400 hover:underline">
-            Înregistrare
-          </a>
-        </div>
+        {/* Link către registrare */}
+        <p className="text-center text-white">
+          Nu ai cont?{' '}
+          <Link href="/register" className="text-blue-400 hover:underline">
+            Înregistrează-te
+          </Link>
+        </p>
       </div>
     </div>
   );
