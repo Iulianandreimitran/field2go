@@ -1,49 +1,55 @@
 // src/app/api/stripe/verify/route.js
-import { NextResponse } from "next/server";
-import Stripe from "stripe";
-import dbConnect from "../../../../utils/dbConnect";
-import Reservation from "../../../../models/Reservation";
+import { NextResponse } from 'next/server';
+import Stripe from 'stripe';
+import dbConnect from '@/utils/dbConnect';
+import Reservation from '@/models/Reservation';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: "2022-11-15",
-});
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
-export async function POST(request) {
+export async function POST(req) {
   try {
     await dbConnect();
-    const { sessionId } = await request.json();
+    const { sessionId } = await req.json();
     if (!sessionId) {
-      return NextResponse.json({ msg: "sessionId is required" }, { status: 400 });
+      return NextResponse.json({ error: 'Missing sessionId' }, { status: 400 });
     }
 
-    const stripeSession = await stripe.checkout.sessions.retrieve(sessionId);
-
-    if (stripeSession.payment_status === "paid") {
-      // extragem reservationId și fieldId din metadata
-      const reservationId = stripeSession.metadata.reservationId;
-      // optional: const fieldId = stripeSession.metadata.fieldId;
-
-      const updatedReservation = await Reservation.findByIdAndUpdate(
-        reservationId,
-        { status: "paid", expiresAt: null },
-        { new: true }
-      );
-
-      return NextResponse.json({
-        msg: "Payment confirmed and reservation updated",
-        reservation: updatedReservation,
-      }, { status: 200 });
-    } else {
-      return NextResponse.json({
-        msg: "Payment not completed",
-        payment_status: stripeSession.payment_status,
-      }, { status: 400 });
+    // Preia sesiunea de checkout de la Stripe (fără expand pe metadata)
+    const session = await stripe.checkout.sessions.retrieve(sessionId);
+    if (session.payment_status !== 'paid') {
+      return NextResponse.json({ error: 'Payment not confirmed' }, { status: 400 });
     }
-  } catch (error) {
-    console.error("Error verifying Stripe session:", error);
-    return NextResponse.json(
-      { msg: "Error verifying payment session", error: error.message },
-      { status: 500 }
-    );
+
+    // Extrage metadata (detaliile rezervării)
+    const meta = session.metadata || {};
+    const userId    = meta.userId;
+    const fieldId   = meta.fieldId;
+    const date      = meta.date ? new Date(meta.date) : null;
+    const startTime = meta.startTime;
+    const duration  = meta.duration ? parseInt(meta.duration, 10) : 0;
+    const isPublic  = meta.isPublic === '1';
+
+    if (!userId || !fieldId || !date || !startTime || !duration) {
+      return NextResponse.json({ error: 'Missing reservation details' }, { status: 400 });
+    }
+
+    // Creează rezervarea în DB
+    const newReservation = await Reservation.create({
+      field: fieldId,
+      owner: userId,
+      date,
+      startTime,
+      duration,
+      isPublic,
+      status: 'active',
+      participants: [],
+      invites: [],
+      messages: []
+    });
+
+    return NextResponse.json({ reservationId: newReservation._id, status: newReservation.status });
+  } catch (err) {
+    console.error('Stripe verify error:', err);
+    return NextResponse.json({ error: 'Eroare la verificarea plății.' }, { status: 500 });
   }
 }

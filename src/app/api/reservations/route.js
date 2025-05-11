@@ -1,87 +1,99 @@
-import { NextResponse } from "next/server";
-import jwt from "jsonwebtoken";
-import dbConnect from "../../../utils/dbConnect";
-import Reservation from "../../../models/Reservation";
-import { getServerSession } from "next-auth";
-import { authOptions } from "../auth/[...nextauth]/route";
+// src/app/api/reservations/route.js
+import { NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth/next';
+import dbConnect from '@/utils/dbConnect';
+import Reservation from '@/models/Reservation';
+import Field from '@/models/Field';
+import User from '@/models/User';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';  // NextAuth config
 
-export async function GET(request) {
-  try {
-    await dbConnect();
-    const { searchParams } = new URL(request.url);
-    const fieldId = searchParams.get("fieldId");
-    if (!fieldId) {
-      return NextResponse.json({ msg: "fieldId is required" }, { status: 400 });
-    }
-    // Fetch only reservations that are paid or pending (not expired)
-    const now = new Date();
-    const reservations = await Reservation.find({
-      field: fieldId,
-      $or: [
-        { status: "paid" },
-        { status: "pending", expiresAt: { $gte: now } }
-      ]
-    });
-    return NextResponse.json({ reservations }, { status: 200 });
-  } catch (error) {
-    console.error("Error fetching reservations:", error);
-    return NextResponse.json(
-      { msg: "Error fetching reservations", error: error.message },
-      { status: 500 }
-    );
+export async function GET(req) {
+  await dbConnect();
+  const { searchParams } = new URL(req.url);
+
+  // Dacă se cere disponibilitate pe un teren (fără autentificare)
+  const fieldId = searchParams.get('fieldId');
+  if (fieldId) {
+    // Returnează toate rezervările pentru acel field (poți filtra și după data în front-end)
+    const fieldReservations = await Reservation.find({ field: fieldId });
+    return NextResponse.json({ reservations: fieldReservations });
   }
+
+  // Pentru listări private/public/mine/invited, necesită autentificare
+  const session = await getServerSession(authOptions);
+  if (!session || !session.user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+  const currentUserId = session.user.id;
+  const isMine = searchParams.get('mine');
+  const isPublic = searchParams.get('public');
+  const isInvited = searchParams.get('invited');
+
+  let filter = { status: 'active' };
+  if (isMine) {
+    filter.$or = [
+      { owner: currentUserId },
+      { participants: currentUserId }
+    ];
+  } else if (isPublic) {
+    filter.isPublic = true;
+  } else if (isInvited) {
+    filter.invites = currentUserId;
+  } else {
+    filter.$or = [
+      { owner: currentUserId },
+      { participants: currentUserId }
+    ];
+  }
+
+  const reservations = await Reservation.find(filter)
+    .populate('field')
+    .populate('owner', 'username email')
+    .populate('participants', 'username email')
+    .populate('invites', 'username email');
+
+  return NextResponse.json(reservations);
 }
 
-export async function POST(request) {
+export async function POST(req) {
+  await dbConnect();
+  const session = await getServerSession(authOptions);
+  // Permite rezervări doar utilizatorilor autentificați
+  let userId = null;
+  if (session && session.user) {
+    userId = session.user.id;
+  } else {
+    // În mod normal folosim JWT manual stocat, dar aici obligăm NextAuth
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  // Obține datele trimise de client
+  const { fieldId, reservedDate, startTime, endTime } = await req.json();
+  if (!fieldId || !reservedDate || !startTime || !endTime) {
+    return NextResponse.json({ error: 'Lipsesc datele pentru rezervare' }, { status: 400 });
+  }
+
+  // Creează rezervarea cu status pending
+  const start = new Date(startTime);
+  const end = new Date(endTime);
+  const durationHours = (end - start) / (1000 * 60 * 60);
+
   try {
-    await dbConnect();
-    let userId = null;
-    let userRole = "user";
-    // Încearcă să obțină sesiunea utilizatorului (NextAuth) sau token JWT
-    const session = await getServerSession(authOptions);
-    if (session) {
-      userId = session.user.id;
-      userRole = session.user.role;
-    } else {
-      const authHeader = request.headers.get("authorization");
-      if (!authHeader) {
-        return NextResponse.json({ msg: "Unauthorized" }, { status: 401 });
-      }
-      const token = authHeader.split(" ")[1];
-      try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET || "mySecret");
-        userId = decoded.userId;
-        userRole = decoded.role || "user";
-      } catch (err) {
-        return NextResponse.json({ msg: "Invalid token" }, { status: 403 });
-      }
-    }
-
-    if (!userId) {
-      return NextResponse.json({ msg: "Unauthorized" }, { status: 401 });
-    }
-
-    const body = await request.json();
-    const { fieldId, reservedDate, startTime, endTime } = body;
-    // Creează rezervarea cu status "pending" și expirare peste 2 minute
     const newReservation = await Reservation.create({
       field: fieldId,
-      user: userId,
-      reservedDate,
-      startTime: new Date(startTime),
-      endTime: new Date(endTime),
-      status: "pending",
-      expiresAt: new Date(Date.now() + 2 * 60 * 1000)
+      owner: userId,
+      date: reservedDate,
+      startTime: startTime.slice(11, 16), // 'HH:mm'
+      duration: durationHours,
+      isPublic: false,
+      status: 'pending',
+      participants: [],
+      invites: [],
+      messages: []
     });
-    return NextResponse.json(
-      { msg: "Rezervare creată", reservation: newReservation },
-      { status: 201 }
-    );
-  } catch (error) {
-    console.error("Eroare la crearea rezervării:", error);
-    return NextResponse.json(
-      { msg: "Eroare la crearea rezervării", error: error.message },
-      { status: 500 }
-    );
+    return NextResponse.json({ reservation: newReservation }, { status: 201 });
+  } catch (err) {
+    console.error('Reservation creation error:', err);
+    return NextResponse.json({ error: 'Eroare la crearea rezervării' }, { status: 500 });
   }
 }

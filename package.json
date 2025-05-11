@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "socket": "node socketServer.js",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"
@@ -11,14 +12,17 @@
   "dependencies": {
     "@stripe/stripe-js": "^7.0.0",
     "bcryptjs": "^3.0.2",
+    "dotenv": "^16.5.0",
     "field2go": "file:",
     "jsonwebtoken": "^9.0.2",
-    "mongoose": "^8.13.0",
+    "mongoose": "^8.14.2",
     "next": "15.2.4",
     "next-auth": "^4.24.11",
     "openai": "^4.96.2",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "socket.io": "^4.8.1",
+    "socket.io-client": "^4.8.1",
     "stripe": "^18.0.0"
   },
   "devDependencies": {

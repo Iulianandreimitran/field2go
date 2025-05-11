@@ -100,8 +100,8 @@ const handleReservationSubmit = async (e) => {
   const payload = {
     fieldId: id,
     reservedDate: selectedDate,
-    startTime: startDate.toISOString(),
-    endTime: endDate.toISOString(),
+    startTime,
+    duration: parseInt(duration)
   };
 
   try {

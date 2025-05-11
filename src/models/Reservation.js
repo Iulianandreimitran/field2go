@@ -1,16 +1,21 @@
 // src/models/Reservation.js
-import mongoose from "mongoose";
+import mongoose from 'mongoose';
 
 const ReservationSchema = new mongoose.Schema({
-  field: { type: mongoose.Schema.Types.ObjectId, ref: "Field", required: true },
-  user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-  reservedDate: { type: String, required: true },
-  startTime: { type: Date, required: true },
-  endTime: { type: Date, required: true },
-
-  // câmpuri noi
-  status: { type: String, default: "pending" }, // "pending", "paid", "cancelled"
-  expiresAt: { type: Date }, // data la care expiră rezervarea pending
+  field: { type: mongoose.Schema.Types.ObjectId, ref: 'Field', required: true },
+  owner: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  date: { type: Date, required: true },
+  startTime: { type: String, required: true },    // ex: "14:00"
+  duration: { type: Number, required: true },      // durata în ore
+  isPublic: { type: Boolean, default: false },
+  status: { type: String, enum: ['pending', 'active', 'completed'], default: 'pending' },
+  participants: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],  // utilizatori care participă (acceptați)
+  invites: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],       // utilizatori invitați (în așteptare)
+  messages: [{
+    sender: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    text: String,
+    timestamp: { type: Date, default: Date.now }
+  }]
 }, { timestamps: true });
 
-export default mongoose.models.Reservation || mongoose.model("Reservation", ReservationSchema);
+export default mongoose.models.Reservation || mongoose.model('Reservation', ReservationSchema);
