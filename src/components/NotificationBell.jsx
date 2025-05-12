@@ -1,38 +1,59 @@
-// src/components/NotificationBell.jsx
 'use client';
+
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 export default function NotificationBell() {
-  const [inviteCount, setInviteCount] = useState(0);
+  const [count, setCount] = useState(0);
+  const router = useRouter();
+
+  // Fetch how many invites are pending
+  const fetchCount = async () => {
+    try {
+      const res = await fetch('/api/reservations?invited=true');
+      if (!res.ok) return;
+      const data = await res.json();
+      setCount(Array.isArray(data) ? data.length : 0);
+    } catch (e) {
+      console.error('Failed to fetch invite count', e);
+    }
+  };
 
   useEffect(() => {
-    // Obține numărul de invitații în așteptare
-    fetch('/api/reservations?invited=true')
-      .then(res => res.json())
-      .then(data => {
-        if (!data.error && Array.isArray(data)) {
-          setInviteCount(data.length);
-        }
-      })
-      .catch(err => console.error('Failed to fetch invites count', err));
+    fetchCount();
+    // Listen for any invite changes (accept/decline)
+    const onChange = () => fetchCount();
+    window.addEventListener('inviteChanged', onChange);
+    return () => window.removeEventListener('inviteChanged', onChange);
   }, []);
 
   return (
-    <Link href="/notifications" style={{ marginLeft: '1rem', textDecoration: 'none', color: 'white' }}>
-      <span style={{ fontSize: '1.5rem', position: 'relative' }}>
-        &#128276; {/* Emoji clopoțel; se poate înlocui cu iconiță SVG/font-awesome */}
-        {inviteCount > 0 && (
-          <span 
-            style={{
-              position: 'absolute', top: '-5px', right: '-10px',
-              background: 'red', color: 'white', borderRadius: '50%',
-              padding: '2px 6px', fontSize: '0.8rem'
-            }}>
-            {inviteCount}
-          </span>
-        )}
-      </span>
-    </Link>
+    <div
+      className="ml-4 relative cursor-pointer"
+      onClick={() => router.push('/notifications')}
+    >
+      {/* Bell icon (you can swap for your SVG) */}
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        className="h-6 w-6 text-white"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+          d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 
+             14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 
+             0v.341C7.67 6.165 6 8.388 6 11v3.159c0 
+             .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 
+             3 0 11-6 0v-1m6 0H9"
+        />
+      </svg>
+      {count > 0 && (
+        <span className="absolute top-0 right-0 block w-2 h-2 bg-red-600 rounded-full"></span>
+      )}
+    </div>
   );
 }

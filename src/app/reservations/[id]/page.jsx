@@ -1,5 +1,6 @@
 // src/app/reservations/[id]/page.jsx
 'use client';
+
 import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
@@ -13,6 +14,7 @@ export default function ReservationDetailPage() {
   const [errorMsg, setErrorMsg] = useState('');
   const [inviteEmail, setInviteEmail] = useState('');
 
+  // Încarcă detaliile rezervării
   useEffect(() => {
     if (!reservationId) return;
     setLoading(true);
@@ -44,119 +46,144 @@ export default function ReservationDetailPage() {
     return <div className="p-4 text-white">Rezervarea nu a fost găsită.</div>;
   }
 
-  const { field, owner, participants = [], invites = [], date, startTime, duration, isPublic, messages = [] } = reservation;
-  const isOwner = session?.user && owner?._id === session.user.id;
+  const {
+    field,
+    owner,
+    participants = [],
+    invites = [],
+    date,
+    startTime,
+    duration,
+    isPublic,
+    messages = []
+  } = reservation;
+  const isOwner = session?.user?.id === owner?._id;
 
-  // Marchează ca public/privat (doar pentru owner)
+  const dateStr = new Date(date).toLocaleDateString();
+
+  // Toggle public/private
   const handleTogglePublic = () => {
-    const newStatus = !reservation.isPublic;
-    // Actualizează în baza de date (API PATCH)
+    const newStatus = !isPublic;
     fetch(`/api/reservations/${reservationId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ isPublic: newStatus })
     }).catch(err => console.error('Eroare la schimbarea statutului public:', err));
-    // Actualizează imediat în UI
     setReservation(prev => ({ ...prev, isPublic: newStatus }));
   };
 
-  // Trimitere invitație (doar pentru owner)
-  const handleInvite = (e) => {
+  // Trimite invitație
+  const handleInvite = async (e) => {
     e.preventDefault();
-    if (!inviteEmail.trim()) return;
-    fetch(`/api/reservations/${reservationId}/invite`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: inviteEmail.trim() })
-    })
-      .then(res => res.json())
-      .then(data => {
-        if (data.error) {
-          alert(data.error);
-        } else {
-          // Dacă API-ul întoarce lista actualizată de invitați sau doar user-ul invitat:
-          if (data.invites) {
-            setReservation(prev => ({ ...prev, invites: data.invites }));
-          } else if (data.invitedUser) {
-            setReservation(prev => ({ ...prev, invites: [...prev.invites, data.invitedUser] }));
-          }
-          setInviteEmail('');  // goliți câmpul după trimitere
-        }
-      })
-      .catch(err => {
-        console.error('Eroare la trimiterea invitației:', err);
-        alert('Eroare la trimiterea invitației.');
-      });
-  };
+    const email = inviteEmail.trim();
+    if (!email) return;
 
-  const dateStr = new Date(date).toLocaleDateString();
+    try {
+      const res = await fetch(`/api/reservations/${reservationId}/invite`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ identifier: email })
+      });
+
+      if (!res.ok) {
+        // încearcă să citească eroarea din JSON
+        let errMsg = res.statusText;
+        try {
+          const errJson = await res.json();
+          errMsg = errJson.error || JSON.stringify(errJson);
+        } catch {}
+        throw new Error(errMsg);
+      }
+
+      // doar dacă răspunsul este JSON îl decodăm
+      const ct = res.headers.get('content-type') || '';
+      const data = ct.includes('application/json') ? await res.json() : {};
+
+      if (data.error) {
+        alert(data.error);
+      } else {
+        if (data.invites) {
+          setReservation(prev => ({ ...prev, invites: data.invites }));
+        } else if (data.invitedUser) {
+          setReservation(prev => ({
+            ...prev,
+            invites: [...prev.invites, data.invitedUser]
+          }));
+        } else {
+          alert('Invitație trimisă!');
+        }
+        setInviteEmail('');
+      }
+    } catch (err) {
+      console.error('Eroare la trimiterea invitației:', err);
+      alert(err.message || 'Eroare la trimiterea invitației.');
+    }
+  };
 
   return (
     <div className="p-4 bg-gray-900 text-white min-h-screen">
       <h2 className="text-2xl font-bold mb-4">Detalii Rezervare</h2>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Coloană stângă: detalii + participanți */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Stânga: detalii + participanți */}
         <div>
-          {/* Card detalii rezervare */}
-          <div className="bg-gray-800 rounded-lg p-4 mb-4">
-            <h3 className="text-xl font-semibold mb-2">{field?.name}</h3>
+          <div className="bg-gray-800 rounded-xl p-6 mb-6 shadow">
+            <h3 className="text-2xl font-semibold mb-2">{field?.name}</h3>
             <p><strong>Organizator:</strong> {owner?.username || owner?.email}</p>
-            <p>
+            <p className="mt-1">
               <strong>Data:</strong> {dateStr} <br/>
               <strong>Ora start:</strong> {startTime} <br/>
               <strong>Durată:</strong> {duration} ore
             </p>
             {isOwner ? (
-              <p>
-                <strong>Publică:</strong>
+              <label className="flex items-center mt-4">
                 <input
                   type="checkbox"
-                  className="ml-2 align-middle"
-                  checked={reservation.isPublic}
+                  checked={isPublic}
                   onChange={handleTogglePublic}
-                /> {reservation.isPublic ? 'Public' : 'Privat'}
-              </p>
+                  className="mr-2"
+                />
+                Publică rezervarea
+              </label>
             ) : (
-              <p><strong>Publică:</strong> {isPublic ? 'Da' : 'Nu'}</p>
+              <p className="mt-2"><strong>Publică:</strong> {isPublic ? 'Da' : 'Nu'}</p>
             )}
           </div>
 
-          {/* Card participanți și invitați */}
-          <div className="bg-gray-800 rounded-lg p-4 mb-4">
-            <h4 className="text-lg font-semibold mb-2">Participanți</h4>
-            {participants.length === 0 ? (
-              <p>{owner ? (owner.username || owner.email) : 'N/A'} (organizator)</p>
-            ) : (
-              <ul className="list-disc list-inside">
-                {[owner, ...participants].map(u => (
-                  <li key={u._id || u.email}>
-                    {u.username || u.email}{u._id === owner?._id ? " (organizator)" : ""}
-                  </li>
-                ))}
-              </ul>
-            )}
+          <div className="bg-gray-800 rounded-xl p-6 shadow">
+            <h4 className="text-xl font-semibold mb-3">Participanți</h4>
+            <ul className="list-disc list-inside space-y-1 mb-4">
+              {[owner, ...participants].map(u => (
+                <li key={u._id || u.email}>
+                  {u.username || u.email}{u._id === owner?._id && ' (organizator)'}
+                </li>
+              ))}
+            </ul>
+
             {invites.length > 0 && (
               <>
-                <h4 className="text-lg font-semibold mt-3 mb-1">Invitații în așteptare</h4>
-                <ul className="list-disc list-inside">
+                <h4 className="text-xl font-semibold mb-2">Invitați în așteptare</h4>
+                <ul className="list-disc list-inside space-y-1 mb-4">
                   {invites.map(u => (
                     <li key={u._id || u.email}>{u.username || u.email}</li>
                   ))}
                 </ul>
               </>
             )}
+
             {isOwner && (
-              <form onSubmit={handleInvite} className="mt-3">
-                <h5 className="font-semibold mb-1">Invită un utilizator:</h5>
-                <div className="flex">
+              <form onSubmit={handleInvite} className="mt-4">
+                <div className="flex space-x-2">
                   <input
                     type="email"
-                    className="flex-1 px-2 py-1 rounded bg-white text-black"
-                    placeholder="Email utilizator"
                     value={inviteEmail}
                     onChange={e => setInviteEmail(e.target.value)}
+                    placeholder="Email utilizator"
+                    className="flex-1 px-3 py-2 rounded-lg text-gray-900"
                   />
-                  <button type="submit" className="ml-2 px-3 py-1 rounded bg-blue-600 hover:bg-blue-700 text-white">
+                  <button
+                    type="submit"
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg font-medium"
+                  >
                     Invită
                   </button>
                 </div>
@@ -165,10 +192,10 @@ export default function ReservationDetailPage() {
           </div>
         </div>
 
-        {/* Coloană dreaptă: chat-ul live */}
+        {/* Dreapta: chat live */}
         <div>
-          <div className="bg-gray-800 rounded-lg p-4 mb-4">
-            <h4 className="text-lg font-semibold mb-2">Chat rezervare</h4>
+          <div className="bg-gray-800 rounded-xl p-6 shadow h-full">
+            <h4 className="text-xl font-semibold mb-3">Chat rezervare</h4>
             <ChatBox reservationId={reservationId} initialMessages={messages} />
           </div>
         </div>

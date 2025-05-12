@@ -1,4 +1,3 @@
-// src/app/notifications/page.jsx
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -10,15 +9,41 @@ export default function NotificationsPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!session?.user) return setLoading(false);
+    if (!session?.user) {
+      setLoading(false);
+      return;
+    }
     fetch('/api/reservations?invited=true')
-      .then((res) => res.json())
-      .then((data) => {
+      .then(res => res.json())
+      .then(data => {
         if (!data.error) setInvites(data);
       })
-      .catch((err) => console.error(err))
+      .catch(err => console.error(err))
       .finally(() => setLoading(false));
   }, [session]);
+
+  const acceptInvite = async (id) => {
+    try {
+      const res = await fetch(`/api/reservations/${id}/accept`, { method: 'POST' });
+      if (res.ok) {
+        // remove from UI
+        setInvites(prev => prev.filter(inv => inv._id !== id));
+        // notify bell to refetch
+        window.dispatchEvent(new Event('inviteChanged'));
+      } else {
+        console.error('Accept invitation failed');
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  const declineInvite = (id) => {
+    // simply remove from UI
+    setInvites(prev => prev.filter(inv => inv._id !== id));
+    window.dispatchEvent(new Event('inviteChanged'));
+    // optionally call an API to clear the invite
+  };
 
   if (!session) {
     return (
@@ -36,20 +61,11 @@ export default function NotificationsPage() {
         <p className="text-gray-400">Se încarcă invitațiile…</p>
       ) : invites.length === 0 ? (
         <div className="flex flex-col items-center justify-center mt-16 text-gray-400">
-          <svg
-            className="w-16 h-16 mb-4 text-gray-600"
-            fill="none" stroke="currentColor" viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-              d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
-            />
-          </svg>
           <p className="text-lg">Nu ai invitații noi.</p>
         </div>
       ) : (
         <div className="space-y-6">
-          {invites.map((inv) => (
+          {invites.map(inv => (
             <div
               key={inv._id}
               className="bg-gray-800 rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition-shadow"
@@ -72,13 +88,13 @@ export default function NotificationsPage() {
               </div>
               <div className="bg-gray-700 px-6 py-4 flex justify-end space-x-3">
                 <button
-                  onClick={() => alert('Funcție ACCEPT de implementat')}
+                  onClick={() => acceptInvite(inv._id)}
                   className="bg-green-500 hover:bg-green-600 text-white font-semibold py-2 px-4 rounded-lg transition"
                 >
                   Acceptă
                 </button>
                 <button
-                  onClick={() => alert('Funcție REFUZ de implementat')}
+                  onClick={() => declineInvite(inv._id)}
                   className="bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded-lg transition"
                 >
                   Refuză
