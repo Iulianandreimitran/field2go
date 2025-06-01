@@ -4,53 +4,46 @@
 import { useSession, signOut } from "next-auth/react";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import NotificationBell from '@/components/NotificationBell';
+import NotificationBell from "@/components/NotificationBell";
+import SearchBar from "@/components/SearchBar";
 
 export default function Header() {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const router = useRouter();
 
-  // Starea pentru utilizatorul logat manual (nume din localStorage)
+  // Dacă utilizatorul s-a logat manual sau prin NextAuth
   const [localUsername, setLocalUsername] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
-    // La montare, preluăm username-ul din localStorage (dacă există)
     setLocalUsername(localStorage.getItem("username") || "");
 
-    // Ascultăm evenimentul "profileUpdate"
     const handleProfileUpdate = (e) => {
       const newUsername = e.detail?.username;
       if (newUsername) {
         setLocalUsername(newUsername);
       } else {
-        const storedUsername = localStorage.getItem("username");
-        setLocalUsername(storedUsername || "");
+        setLocalUsername(localStorage.getItem("username") || "");
       }
     };
-
     window.addEventListener("profileUpdate", handleProfileUpdate);
     return () => {
       window.removeEventListener("profileUpdate", handleProfileUpdate);
     };
   }, []);
 
-  // Numele de afișat în header
   const displayName = session
-    ? localUsername || session.user.name || session.user.email
+    ? session.user.name || session.user.email || localUsername
     : localUsername || "Log in";
 
-  // Navighează spre pagina /fields
   function handleFieldsClick() {
     router.push("/fields");
   }
 
-  // Navighează spre pagina rezervări publice
   function handleExploreClick() {
     router.push("/explore");
   }
 
-  // Deschide/închide meniul
   function handleHeaderClick() {
     if (!session && !localUsername) {
       router.push("/login");
@@ -69,17 +62,19 @@ export default function Header() {
     setMenuOpen(false);
   }
 
+  function handleFriends() {
+    router.push("/friends");
+    setMenuOpen(false);
+  }
+
   function handleLogOut() {
     if (session) {
-      // Logout pentru sesiunea NextAuth
       signOut({ callbackUrl: "/" });
-      // Ștergem datele locale
       localStorage.removeItem("token");
       localStorage.removeItem("username");
       localStorage.removeItem("email");
       localStorage.removeItem("role");
     } else {
-      // Logout pentru login tradițional
       localStorage.removeItem("token");
       localStorage.removeItem("username");
       localStorage.removeItem("email");
@@ -106,17 +101,20 @@ export default function Header() {
         </button>
       </div>
 
-      {/* Containerul pentru “Salut, [nume]” + clopoțel + dropdown */}
-      <div className="relative flex items-center">
-        <div onClick={handleHeaderClick} className="cursor-pointer flex items-center">
+      {/* Dacă utilizatorul e autentificat, afișăm SearchBar */}
+      <div className="flex-1 mx-4">
+        {status === "authenticated" && <SearchBar />}
+      </div>
+
+      {/* Salut și clopoțel */}
+      <div className="relative flex items-center space-x-4">
+        <div onClick={handleHeaderClick} className="cursor-pointer">
           <span>{`Salut, ${displayName}`}</span>
         </div>
-
-        {/* Notification Bell */}
-        {session || localUsername ? <NotificationBell /> : null}
+        {(status === "authenticated" || localUsername) && <NotificationBell />}
 
         {menuOpen && (
-          <div className="absolute top-full right-0 mt-2 bg-gray-800 rounded shadow-md text-white w-48">
+          <div className="absolute top-full right-0 mt-2 bg-gray-800 rounded shadow-md text-white w-48 z-20">
             <ul className="py-2">
               <li
                 className="px-4 py-2 hover:bg-gray-700 cursor-pointer"
@@ -129,6 +127,12 @@ export default function Header() {
                 onClick={handleMyReservations}
               >
                 Rezervările Mele
+              </li>
+              <li
+                className="px-4 py-2 hover:bg-gray-700 cursor-pointer"
+                onClick={handleFriends}  /* Iată secțiunea „Prieteni” */
+              >
+                Prieteni
               </li>
               <li
                 className="px-4 py-2 hover:bg-gray-700 cursor-pointer"
