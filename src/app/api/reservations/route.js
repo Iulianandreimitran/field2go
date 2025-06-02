@@ -1,99 +1,151 @@
 // src/app/api/reservations/route.js
-import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth/next';
-import dbConnect from '@/utils/dbConnect';
-import Reservation from '@/models/Reservation';
-import Field from '@/models/Field';
-import User from '@/models/User';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';  // NextAuth config
+import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth/next";
+import dbConnect from "@/utils/dbConnect";
+import Reservation from "@/models/Reservation";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
+//
+// ──────────────────────────────────────────────────────────────────────────────
+//   GET /api/reservations
+//   - poate primi parametrii query: field=<idTeren>&date=YYYY-MM-DD
+//   - sau ?public=true, ?mine=true, ?invited=true
+// ──────────────────────────────────────────────────────────────────────────────
+//
 export async function GET(req) {
   await dbConnect();
   const { searchParams } = new URL(req.url);
 
-  // Dacă se cere disponibilitate pe un teren (fără autentificare)
-  const fieldId = searchParams.get('fieldId');
-  if (fieldId) {
-    // Returnează toate rezervările pentru acel field (poți filtra și după data în front-end)
-    const fieldReservations = await Reservation.find({ field: fieldId });
-    return NextResponse.json({ reservations: fieldReservations });
+  const fieldId   = searchParams.get("field");               // ?field=<idTeren>
+  const date      = searchParams.get("date");                // ?date=YYYY-MM-DD
+  const isPublic  = searchParams.get("public") === "true";   // ?public=true
+  const isMine    = searchParams.get("mine")   === "true";   // ?mine=true
+  const isInvited = searchParams.get("invited")=== "true";   // ?invited=true
+
+  // 1) Dacă au fost trimise parametrii ?field=<id>&date=<YYYY-MM-DD>,
+  //    respondem doar cu rezervările de pe acel teren în acea zi (fără autentificare).
+  if (fieldId && date) {
+    const reservations = await Reservation.find({
+      field: fieldId,
+      date:  date
+    }).lean();
+    return NextResponse.json(reservations);
   }
 
-  // Pentru listări private/public/mine/invited, necesită autentificare
+  // 2) Dacă vine ?public=true, returnăm rezervările publice active
+  if (isPublic) {
+    const reservations = await Reservation.find({
+      isPublic: true,
+      status:   "active"
+    })
+      .populate("field", "name")
+      .populate("owner", "username email")
+      .populate("participants", "username email")
+      .lean();
+
+    return NextResponse.json(reservations);
+  }
+
+  // 3) Ramurile mine/invited necesită autentificare
   const session = await getServerSession(authOptions);
   if (!session || !session.user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   const currentUserId = session.user.id;
-  const isMine = searchParams.get('mine');
-  const isPublic = searchParams.get('public');
-  const isInvited = searchParams.get('invited');
 
-  let filter = { status: 'active' };
+  let filter = {};
+
   if (isMine) {
-    filter.$or = [
-      { owner: currentUserId },
-      { participants: currentUserId }
-    ];
-  } else if (isPublic) {
-    filter.isPublic = true;
+    // Rezervările mele: fie sunt owner, fie participant, cu status = pending sau active
+    filter = {
+      $or: [
+        { owner: currentUserId },
+        { participants: currentUserId }
+      ],
+      status: { $in: ["pending", "active"] }
+    };
   } else if (isInvited) {
-    filter.invites = currentUserId;
+    // Invitațiile mele: invites conține ID‐ul meu, cu status = pending
+    filter = {
+      invites: currentUserId,
+      status:  "pending"
+    };
   } else {
-    filter.$or = [
-      { owner: currentUserId },
-      { participants: currentUserId }
-    ];
+    // Alte situații (fără parametri speciali): doar rezervările active unde sunt implicat
+    filter = {
+      $or: [
+        { owner: currentUserId },
+        { participants: currentUserId }
+      ],
+      status: "active"
+    };
   }
 
   const reservations = await Reservation.find(filter)
-    .populate('field')
-    .populate('owner', 'username email')
-    .populate('participants', 'username email')
-    .populate('invites', 'username email');
+    .populate("field", "name")
+    .populate("owner", "username email")
+    .populate("participants", "username email")
+    .populate("invites", "username email")
+    .lean();
 
   return NextResponse.json(reservations);
 }
 
+
+
+//
+// ──────────────────────────────────────────────────────────────────────────────
+//   POST /api/reservations
+//   – crează o rezervare cu status = "pending" (fără autentificare e 401)
+//   – body JSON: { fieldId, reservedDate, startTime, duration }
+// ──────────────────────────────────────────────────────────────────────────────
+//
 export async function POST(req) {
   await dbConnect();
   const session = await getServerSession(authOptions);
-  // Permite rezervări doar utilizatorilor autentificați
-  let userId = null;
-  if (session && session.user) {
-    userId = session.user.id;
-  } else {
-    // În mod normal folosim JWT manual stocat, dar aici obligăm NextAuth
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  if (!session || !session.user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  const currentUserId = session.user.id;
+
+  // 1) Citim JSON‐ul trimis
+  let body;
+  try {
+    body = await req.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  // Obține datele trimise de client
-  const { fieldId, reservedDate, startTime, endTime } = await req.json();
-  if (!fieldId || !reservedDate || !startTime || !endTime) {
-    return NextResponse.json({ error: 'Lipsesc datele pentru rezervare' }, { status: 400 });
+  const { fieldId, reservedDate, startTime, duration } = body;
+  if (!fieldId || !reservedDate || !startTime || !duration) {
+    return NextResponse.json(
+      { error: "Lipsesc datele necesare rezervării." },
+      { status: 400 }
+    );
   }
 
-  // Creează rezervarea cu status pending
-  const start = new Date(startTime);
-  const end = new Date(endTime);
-  const durationHours = (end - start) / (1000 * 60 * 60);
-
+  // 2) Creăm documentul de tip „Reservation” cu status = "pending"
   try {
     const newReservation = await Reservation.create({
-      field: fieldId,
-      owner: userId,
-      date: reservedDate,
-      startTime: startTime.slice(11, 16), // 'HH:mm'
-      duration: durationHours,
-      isPublic: false,
-      status: 'pending',
-      participants: [],
-      invites: [],
-      messages: []
+      field:        fieldId,                         // ObjectId al terenului
+      owner:        currentUserId,                   // ID‐ul userului curent
+      date:         reservedDate,                    // ex: "2025-06-21"
+      startTime:    startTime,                       // ex: "14:00"
+      duration:     parseInt(duration, 10),          // ex: 2 (ore)
+      isPublic:     false,                           // default false
+      status:       "pending",                       // până la confirmarea plății
+      participants: [],                              // inițial gol
+      invites:      [],                              // inițial gol
+      messages:     []                               // inițial gol
     });
+
+    // 3) Returnăm întreaga rezervare, ca să știe clientul reservation._id
     return NextResponse.json({ reservation: newReservation }, { status: 201 });
   } catch (err) {
-    console.error('Reservation creation error:', err);
-    return NextResponse.json({ error: 'Eroare la crearea rezervării' }, { status: 500 });
+    console.error("Reservation creation error:", err);
+    return NextResponse.json(
+      { error: "Eroare la crearea rezervării." },
+      { status: 500 }
+    );
   }
 }

@@ -1,8 +1,8 @@
 // src/app/api/stripe/verify/route.js
-import { NextResponse } from 'next/server';
-import Stripe from 'stripe';
-import dbConnect from '@/utils/dbConnect';
-import Reservation from '@/models/Reservation';
+import { NextResponse } from "next/server";
+import Stripe from "stripe";
+import dbConnect from "@/utils/dbConnect";
+import Reservation from "@/models/Reservation";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
@@ -11,45 +11,47 @@ export async function POST(req) {
     await dbConnect();
     const { sessionId } = await req.json();
     if (!sessionId) {
-      return NextResponse.json({ error: 'Missing sessionId' }, { status: 400 });
+      return NextResponse.json({ error: "Missing sessionId" }, { status: 400 });
     }
 
-    // Preia sesiunea de checkout de la Stripe (fără expand pe metadata)
+    // 1) Preluăm sesiunea de checkout de la Stripe
     const session = await stripe.checkout.sessions.retrieve(sessionId);
-    if (session.payment_status !== 'paid') {
-      return NextResponse.json({ error: 'Payment not confirmed' }, { status: 400 });
+    if (session.payment_status !== "paid") {
+      return NextResponse.json({ error: "Payment not confirmed" }, { status: 400 });
     }
 
-    // Extrage metadata (detaliile rezervării)
+    // 2) Extragem metadata din sesiune
+    //    Acolo am inclus la checkout: reservationId (ID‐ul făcut anterior ca "pending"),
+    //    plus restul informațiilor (userId, fieldId, date, startTime, duration, isPublic)
     const meta = session.metadata || {};
-    const userId    = meta.userId;
-    const fieldId   = meta.fieldId;
-    const date      = meta.date ? new Date(meta.date) : null;
-    const startTime = meta.startTime;
-    const duration  = meta.duration ? parseInt(meta.duration, 10) : 0;
-    const isPublic  = meta.isPublic === '1';
-
-    if (!userId || !fieldId || !date || !startTime || !duration) {
-      return NextResponse.json({ error: 'Missing reservation details' }, { status: 400 });
+    const reservationId = meta.reservationId;
+    if (!reservationId) {
+      return NextResponse.json({ error: "Missing reservationId in metadata" }, { status: 400 });
     }
 
-    // Creează rezervarea în DB
-    const newReservation = await Reservation.create({
-      field: fieldId,
-      owner: userId,
-      date,
-      startTime,
-      duration,
-      isPublic,
-      status: 'active',
-      participants: [],
-      invites: [],
-      messages: []
-    });
+    // 3) Găsim rezervarea inițială (cea cu status = "pending")
+    const existing = await Reservation.findById(reservationId);
+    if (!existing) {
+      return NextResponse.json({ error: "Reservation not found" }, { status: 404 });
+    }
 
-    return NextResponse.json({ reservationId: newReservation._id, status: newReservation.status });
+    // 4) Actualizăm rezervarea cu status = "active"
+    //    (dacă vrei să lași datele originale, nu e nevoie să le reconstruiești din metadata,
+    //     pentru că ele erau deja completate la POST‐ul inițial)
+    existing.status = "active";
+    // Dacă vrei să marchezi din metadata că e publică după plată:
+    // existing.isPublic = meta.isPublic === "1";
+    await existing.save();
+
+    return NextResponse.json({
+      reservationId: existing._id,
+      status: existing.status,
+    });
   } catch (err) {
-    console.error('Stripe verify error:', err);
-    return NextResponse.json({ error: 'Eroare la verificarea plății.' }, { status: 500 });
+    console.error("Stripe verify error:", err);
+    return NextResponse.json(
+      { error: "Eroare la verificarea plății." },
+      { status: 500 }
+    );
   }
 }

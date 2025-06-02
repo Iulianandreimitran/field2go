@@ -7,53 +7,56 @@ import Image from 'next/image';
 
 export default function NotificationsPage() {
   const { data: session } = useSession();
-  
-  // State pentru invitațiile la terenuri
-  const [ invites, setInvites ] = useState([]);
-  const [ loadingInvites, setLoadingInvites ] = useState(true);
 
-  // State pentru cererile de prietenie
-  const [ friendRequests, setFriendRequests ] = useState([]);
-  const [ loadingFriendReq, setLoadingFriendReq ] = useState(true);
+  // 1) State pentru „invitațiile la terenuri”
+  const [invites, setInvites] = useState([]);
+  const [loadingInvites, setLoadingInvites] = useState(true);
+
+  // 2) State pentru cererile de prietenie (rămâne neschimbat)
+  const [friendRequests, setFriendRequests] = useState([]);
+  const [loadingFriendReq, setLoadingFriendReq] = useState(true);
 
   useEffect(() => {
     if (!session?.user) {
-      // dacă nu e user logat, nu apelăm niciun API
+      // Dacă nu e user logat, nu apelăm niciun API
       setLoadingInvites(false);
       setLoadingFriendReq(false);
       return;
     }
 
-    // 1. Fetch invitații la terenuri
+    // ──────────────────────────────────────────────────
+    // 1) Fetch „invitațiile la terenuri” (fără model `Notification`)
+    //    Endpoint: /api/reservations?invited=true
     setLoadingInvites(true);
-    fetch('/api/reservations?invited=true')
+    fetch('/api/reservations?invited=true', {
+      credentials: 'include'
+    })
       .then(res => res.json())
       .then(data => {
         if (!data.error) {
+          // `data` e un array de rezervări (la care ești invitat)
           setInvites(data);
         } else {
-          console.error('Error fetching reservation invites:', data.error);
+          console.error('Error fetching invitation-reservations:', data.error);
         }
       })
       .catch(err => {
-        console.error('Error fetching reservation invites:', err);
+        console.error('Error fetching invitation-reservations:', err);
       })
       .finally(() => {
         setLoadingInvites(false);
       });
 
-    // 2. Fetch cereri de prietenie
+    // ──────────────────────────────────────────────────
+    // 2) Fetch „cereri de prietenie” (pus deja)
     setLoadingFriendReq(true);
     fetch('/api/friend-request')
       .then(res => res.json())
       .then(data => {
         if (!data.error && data.received) {
-          // API-ul nostru GET /api/friend-request răspunde cu:
-          // { received: [ ... ], sent: [ ... ] }
           setFriendRequests(data.received);
         } else {
-          // Dacă nu avem `received`, îl tratăm că nu sunt cereri
-          console.error('Error fetching friend requests:', data.error);
+          console.error('Error fetching friend requests:', data.error || 'No data.received');
         }
       })
       .catch(err => {
@@ -64,29 +67,46 @@ export default function NotificationsPage() {
       });
   }, [session]);
 
-  const acceptInvite = async (id) => {
+  // ──────────────────────────────────────────────────
+  //  Handlers pentru invitațiile „la terenuri”
+  // ──────────────────────────────────────────────────
+
+  const acceptInvite = async (reservationId) => {
     try {
-      const res = await fetch(`/api/reservations/${id}/accept`, { method: 'POST' });
+      // Când dai „Acceptă”, faci POST la `/api/reservations/[id]/accept`
+      const res = await fetch(`/api/reservations/${reservationId}/accept`, {
+        method: 'POST',
+        credentials: 'include'
+      });
       if (res.ok) {
-        setInvites(prev => prev.filter(inv => inv._id !== id));
+        // Eliminăm rezervarea din lista de invites din UI
+        setInvites(prev => prev.filter(inv => inv._id !== reservationId));
         window.dispatchEvent(new Event('inviteChanged'));
       } else {
-        console.error('Accept invitation failed');
+        const errorData = await res.json();
+        console.error('Accept invitation failed:', errorData.error || res.statusText);
       }
     } catch (error) {
-      console.error(error);
+      console.error('Accept invitation erroare:', error);
     }
   };
 
-  const declineInvite = (id) => {
-    setInvites(prev => prev.filter(inv => inv._id !== id));
+  const declineInvite = (reservationId) => {
+    // Doar scoatem elementul din UI (fără back-end)
+    setInvites(prev => prev.filter(inv => inv._id !== reservationId));
     window.dispatchEvent(new Event('inviteChanged'));
-    // Aici, opțional, ai putea face un call la un endpoint care marchează invitația ca „respinsă”
+    // Dacă vrei, poți să marchezi manual status-ul în back-end (opțional)
   };
+
+  // ──────────────────────────────────────────────────
+  //  Handlers pentru „cererile de prietenie”
+  // ──────────────────────────────────────────────────
 
   const acceptFriendRequest = async (requestId) => {
     try {
-      const res = await fetch(`/api/friend-request/${requestId}/accept`, { method: 'POST' });
+      const res = await fetch(`/api/friend-request/${requestId}/accept`, {
+        method: 'POST'
+      });
       if (res.ok) {
         setFriendRequests(prev => prev.filter(fr => fr._id !== requestId));
       } else {
@@ -99,7 +119,9 @@ export default function NotificationsPage() {
 
   const rejectFriendRequest = async (requestId) => {
     try {
-      const res = await fetch(`/api/friend-request/${requestId}/reject`, { method: 'POST' });
+      const res = await fetch(`/api/friend-request/${requestId}/reject`, {
+        method: 'POST'
+      });
       if (res.ok) {
         setFriendRequests(prev => prev.filter(fr => fr._id !== requestId));
       } else {
@@ -110,6 +132,9 @@ export default function NotificationsPage() {
     }
   };
 
+  // ──────────────────────────────────────────────────
+  //  Dacă nu e user logat, afișăm mesaj
+  // ──────────────────────────────────────────────────
   if (!session) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-900 text-white">
@@ -118,18 +143,25 @@ export default function NotificationsPage() {
     );
   }
 
+  // ──────────────────────────────────────────────────
+  //  Render Notifications Page
+  // ──────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-gray-900 py-8 px-4">
       <h1 className="text-3xl font-bold text-white mb-6">Notificări</h1>
 
-      {/* ------------------------------------------------------ */}
-      {/* 1. Secțiunea de Cereri de prietenie (Friend Requests) */}
-      {/* ------------------------------------------------------ */}
+      {/* ========================================= */}
+      {/* 1) Secțiunea de Cereri de prietenie */}
+      {/* ========================================= */}
       <div className="mb-12">
-        <h2 className="text-2xl font-semibold text-pink-500 mb-4">Cereri de prietenie</h2>
+        <h2 className="text-2xl font-semibold text-pink-500 mb-4">
+          Cereri de prietenie
+        </h2>
 
         {loadingFriendReq ? (
-          <p className="text-gray-400">Se încarcă cererile de prietenie...</p>
+          <p className="text-gray-400">
+            Se încarcă cererile de prietenie...
+          </p>
         ) : friendRequests.length === 0 ? (
           <p className="text-gray-400">Nu ai cereri de prietenie noi.</p>
         ) : (
@@ -154,7 +186,9 @@ export default function NotificationsPage() {
 
                 <div className="flex-1">
                   <p>
-                    <strong className="text-pink-400">{req.sender.username}</strong>{' '}
+                    <strong className="text-pink-400">
+                      {req.sender.username}
+                    </strong>{" "}
                     ți-a trimis o cerere de prietenie.
                   </p>
                 </div>
@@ -179,14 +213,18 @@ export default function NotificationsPage() {
         )}
       </div>
 
-      {/* ------------------------------------------------------ */}
-      {/* 2. Secțiunea de Invitații la terenuri (Field Invites)  */}
-      {/* ------------------------------------------------------ */}
+      {/* ========================================= */}
+      {/* 2) Secțiunea de „Invitații la terenuri”    */}
+      {/* ========================================= */}
       <div>
-        <h2 className="text-2xl font-semibold text-blue-400 mb-4">Invitații la terenuri</h2>
+        <h2 className="text-2xl font-semibold text-blue-400 mb-4">
+          Invitații la terenuri
+        </h2>
 
         {loadingInvites ? (
-          <p className="text-gray-400">Se încarcă invitațiile la terenuri...</p>
+          <p className="text-gray-400">
+            Se încarcă invitațiile la terenuri...
+          </p>
         ) : invites.length === 0 ? (
           <div className="flex flex-col items-center justify-center mt-8 text-gray-400">
             <p className="text-lg">Nu ai invitații noi la terenuri.</p>
@@ -200,19 +238,22 @@ export default function NotificationsPage() {
               >
                 <div className="p-6">
                   <h2 className="text-xl font-semibold text-blue-300 mb-2">
-                    Ai fost invitat la: <span className="text-white">{inv.field?.name}</span>
+                    Ai fost invitat la:{" "}
+                    <span className="text-white">
+                      {inv.field?.name || "–"}
+                    </span>
                   </h2>
                   <p className="text-gray-300 text-sm">
-                    <span className="font-medium">Data:</span>{' '}
-                    {new Date(inv.date).toLocaleDateString('ro-RO', {
-                      day: '2-digit',
-                      month: '2-digit',
-                      year: 'numeric',
-                    })}{' '}
+                    <span className="font-medium">Data:</span>{" "}
+                    {new Date(inv.date).toLocaleDateString("ro-RO", {
+                      day: "2-digit",
+                      month: "2-digit",
+                      year: "numeric",
+                    })}{" "}
                     <span className="font-medium">Ora:</span> {inv.startTime}
                   </p>
                   <p className="text-gray-300 text-sm mt-1">
-                    <span className="font-medium">Organizator:</span>{' '}
+                    <span className="font-medium">Organizator:</span>{" "}
                     {inv.owner.username || inv.owner.email}
                   </p>
                 </div>

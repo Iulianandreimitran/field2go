@@ -10,32 +10,35 @@ const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY)
 export default function PaymentPage() {
   const searchParams = useSearchParams();
   const reservationId = searchParams.get("reservationId");
-  const amount = searchParams.get("amount"); // de exemplu, 24000
   const [message, setMessage] = useState("Inițializare plată...");
 
   useEffect(() => {
-    if (!reservationId || !amount) {
+    // Dacă nu avem reservationId în URL, afișăm mesaj de eroare
+    if (!reservationId) {
       setMessage("Date insuficiente pentru plată.");
       return;
     }
 
     const createCheckoutSession = async () => {
       try {
+        // Trimitem doar reservationId; backend-ul va calcula suma
         const res = await fetch("/api/stripe/checkout", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ reservationId, amount }),
+          body: JSON.stringify({ reservationId }),
         });
         const data = await res.json();
 
         if (res.ok && data.sessionId) {
           const stripe = await stripePromise;
-          const { error } = await stripe.redirectToCheckout({ sessionId: data.sessionId });
+          const { error } = await stripe.redirectToCheckout({
+            sessionId: data.sessionId,
+          });
           if (error) {
             setMessage(error.message);
           }
         } else {
-          setMessage(data.msg || "Eroare la inițializarea plății.");
+          setMessage(data.error || "Eroare la inițializarea plății.");
         }
       } catch (error) {
         console.error("Eroare la crearea sesiunii Stripe:", error);
@@ -44,7 +47,7 @@ export default function PaymentPage() {
     };
 
     createCheckoutSession();
-  }, [reservationId, amount]);
+  }, [reservationId]);
 
   return (
     <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center">
