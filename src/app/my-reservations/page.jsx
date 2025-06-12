@@ -14,6 +14,7 @@ export default function MyReservationsPage() {
   useEffect(() => {
     async function loadReservations() {
       setLoading(true);
+
       if (!session?.user) {
         setMyRes([]);
         setLoading(false);
@@ -24,25 +25,32 @@ export default function MyReservationsPage() {
         const res = await fetch("/api/reservations?mine=true", {
           credentials: "include",
         });
+
+        const contentType = res.headers.get("content-type") || "";
+
+        if (!res.ok || !contentType.includes("application/json")) {
+          const rawText = await res.text(); // pentru debug dacă vrei
+          console.warn("Răspuns invalid sau neautorizat:", res.status, rawText);
+          throw new Error("Nu s-au putut încărca rezervările.");
+        }
+
         const data = await res.json();
+
         if (data.error) {
           setErrorMsg(data.error);
           setMyRes([]);
         } else {
-          // Filtrăm doar rezervările viitoare (data >= astăzi)
           const azi = new Date();
           const filtrate = data.filter((r) => {
-            // r.date e string "YYYY-MM-DD"
             const [y, m, d] = r.date.split("-").map((x) => parseInt(x, 10));
             const rezDate = new Date(y, m - 1, d);
-            // comparăm doar data, nu și ora
             return rezDate >= new Date(azi.getFullYear(), azi.getMonth(), azi.getDate());
           });
           setMyRes(filtrate);
         }
       } catch (err) {
         console.error("Eroare la încărcarea rezervărilor mele:", err);
-        setErrorMsg("Eroare la încărcarea rezervărilor mele.");
+        setErrorMsg("Nu s-au putut încărca rezervările. Asigură-te că ești autentificat.");
         setMyRes([]);
       } finally {
         setLoading(false);

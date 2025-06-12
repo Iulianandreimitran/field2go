@@ -3,6 +3,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 
 export default function FriendList({ initialFriends }) {
   const [friends, setFriends] = useState(initialFriends);
@@ -51,12 +52,19 @@ export default function FriendList({ initialFriends }) {
             )}
             <span className="text-white font-medium text-lg">{friend.username}</span>
           </div>
-          <button
-            onClick={() => handleDelete(friend._id)}
-            className="bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg transition"
-          >
-            Șterge prieten
-          </button>
+          <div className="flex gap-2">
+            <Link href={`/chat/${friend._id}`}>
+                <button className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition">
+                  Mesaje
+                </button>
+              </Link>
+            <button
+              onClick={() => handleDelete(friend._id)}
+              className="bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg transition"
+            >
+              Șterge prieten
+            </button>
+          </div>
         </li>
       ))}
     </ul>
