@@ -11,8 +11,9 @@ export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [message, setMessage] = useState('')
-  const [showPwd, setShowPwd] = useState(false)      // ← toggle
+  const [showPwd, setShowPwd] = useState(false)
 
+  // 🔐 Login normal (email + parolă)
   async function handleSubmit(e) {
     e.preventDefault()
     setMessage('')
@@ -26,12 +27,13 @@ export default function LoginPage() {
     if (res?.error) {
       setMessage('Eroare: ' + res.error)
     } else {
-      router.push('/dashboard')
+      router.push('/') // sau redirect spre dashboard
     }
   }
 
+  // 🌐 Login Google
   function handleGoogleSignIn() {
-    signIn('google', { callbackUrl: '/dashboard' })
+    signIn('google', { callbackUrl: '/' }) // sau redirect spre /dashboard dacă vrei
   }
 
   return (
@@ -47,7 +49,7 @@ export default function LoginPage() {
               type="email"
               value={email}
               required
-              onChange={e => setEmail(e.target.value)}
+              onChange={(e) => setEmail(e.target.value)}
               className="w-full px-3 py-2 bg-gray-700 text-white rounded"
               placeholder="you@example.com"
             />
@@ -56,17 +58,17 @@ export default function LoginPage() {
           <div className="relative">
             <label className="block text-white mb-1">Parolă</label>
             <input
-              type={showPwd ? 'text' : 'password'}             // ← switch
+              type={showPwd ? 'text' : 'password'}
               value={password}
               required
-              onChange={e => setPassword(e.target.value)}
+              onChange={(e) => setPassword(e.target.value)}
               className="w-full px-3 py-2 bg-gray-700 text-white rounded pr-10"
               placeholder="Parola"
             />
             <button
               type="button"
-              onClick={() => setShowPwd(v => !v)}
-              className="absolute top-9 right-3 text-gray-600"
+              onClick={() => setShowPwd((v) => !v)}
+              className="absolute top-9 right-3 text-gray-400"
               tabIndex={-1}
             >
               {showPwd ? '🙈' : '👁️'}

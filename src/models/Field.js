@@ -8,6 +8,7 @@ const FieldSchema = new mongoose.Schema({
   pricePerHour: { type: Number, required: true },
   description: { type: String },
   images: { type: [String], default: [] },
+   owner: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
 }, { timestamps: true });
 
 export default mongoose.models.Field || mongoose.model("Field", FieldSchema);

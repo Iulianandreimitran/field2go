@@ -11,7 +11,8 @@ export async function GET(request) {
   if (!q) return NextResponse.json([]);
 
   const users = await User.find(
-    {
+    { 
+      role: { $ne: "admin" }, 
       $or: [
         { username: { $regex: q, $options: "i" } },
         { email: { $regex: q, $options: "i" } },

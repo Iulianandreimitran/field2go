@@ -1,82 +1,60 @@
+// src/components/ChatBox.jsxAdd commentMore actions
 'use client';
-
 import { useEffect, useRef, useState } from 'react';
 import { io } from 'socket.io-client';
 import { useSession } from 'next-auth/react';
 
-export default function ChatBox({ roomId, mode = "private", initialMessages = [] }) {
+export default function ChatBox({ reservationId, initialMessages = [] }) {
   const { data: session } = useSession();
-  const socketRef = useRef(null);
-  const messagesEndRef = useRef(null);
-
+  // Formatează mesajele inițiale pentru a avea numele expeditorului ca text
   const initialFormatted = initialMessages.map(msg => {
     const senderName = typeof msg.sender === 'object'
       ? (msg.sender.username || msg.sender.name || msg.sender.email || 'User')
       : msg.sender;
     return {
       sender: senderName,
-      text: msg.text || msg.content,
-      timestamp: msg.timestamp || msg.createdAt
+      text: msg.text,
+      timestamp: msg.timestamp
     };
   });
-
   const [messages, setMessages] = useState(initialFormatted);
   const [newMsg, setNewMsg] = useState('');
+  const socketRef = useRef(null);
+  const messagesEndRef = useRef(null);
 
   useEffect(() => {
-    if (!session?.user || !roomId) return;
-
-    const socket = io('http://localhost:3001', {
-      transports: ['websocket'],
-      autoConnect: true,
-    });
+    if (!session?.user || !reservationId) return;
+    // Conectează la serverul Socket.IO (folosește origin-ul curent)
+    const socket = io('http://localhost:3001', { transports: ['websocket'] });
     socketRef.current = socket;
-
-    // 🔌 JOIN CAMERA
-    if (mode === "reservation") {
-      socket.emit("joinReservation", roomId);
-    } else {
-      const friendId = roomId.split('_').find(id => id !== session.user.id);
-      socket.emit("joinPrivateRoom", { userId: session.user.id, friendId });
-    }
-
-    // 📥 RECEPȚIE MESAJ
-    const eventName = mode === "reservation" ? "message" : "privateMessage";
-    socket.on(eventName, (msg) => {
-      setMessages((prev) => [...prev, msg]);
+    // Alătură "camera" specifică rezervării pentru a primi mesaje
+    socket.emit('joinReservation', reservationId);
+    // Primește mesaje de la server și actualizează lista
+    socket.on('message', (msg) => {
+      setMessages(prev => [...prev, msg]);
     });
-
-    // 🔌 Cleanup
+    // Cleanup la demontare: deconectează socket-ul
     return () => {
       socket.disconnect();
     };
-  }, [roomId, session?.user?.id, mode]);
+  }, [session, reservationId]);
 
   useEffect(() => {
+    // Derulează automat la ultimul mesaj când lista de mesaje se schimbă
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
   const handleSendMessage = () => {
     if (!newMsg.trim() || !socketRef.current || !session?.user) return;
-
-    if (mode === "reservation") {
-      const msgData = {
-        reservationId: roomId,
-        text: newMsg.trim(),
-        senderId: session.user.id,
-        senderName: session.user.username || session.user.name || session.user.email || 'Anon',
-      };
-      socketRef.current.emit("message", msgData);
-    } else {
-      const friendId = roomId.split('_').find(id => id !== session.user.id);
-      const msgData = {
-        senderId: session.user.id,
-        receiverId: friendId,
-        content: newMsg.trim(),
-      };
-      socketRef.current.emit("privateMessage", msgData);
-    }
-
+    const msgData = {
+      reservationId,
+      text: newMsg.trim(),
+      senderId: session.user.id || session.user.email || 'anon',
+      senderName: session.user.username || session.user.name || session.user.email || 'Anon'
+    };
+    // Trimite mesajul către server
+    socketRef.current.emit('reservationMessage', msgData);
+    // Golește câmpul de input după trimitere (mesajul va apărea prin evenimentul de la server)
     setNewMsg('');
   };
 
@@ -88,12 +66,14 @@ export default function ChatBox({ roomId, mode = "private", initialMessages = []
           return (
             <div key={idx} className="mb-2">
               <span className="font-semibold">{msg.sender}:</span>
-              <span className="ml-2">{msg.text || msg.content}</span>
-              {timeStr && <div className="text-xs text-gray-400">{timeStr}</div>}
+              <span className="ml-2">{msg.text}</span>
+              {timeStr && (
+                <div className="text-xs text-gray-400">{timeStr}</div>
+              )}
             </div>
           );
         })}
-        <div ref={messagesEndRef} />
+        <div ref={messagesEndRef} />  {/* element invizibil pentru scroll */}
       </div>
       <div className="flex">
         <input

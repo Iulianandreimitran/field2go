@@ -1,10 +1,10 @@
-// src/app/api/fields/route.js
 import { NextResponse } from "next/server";
 import jwt from "jsonwebtoken";
 import dbConnect from "../../../utils/dbConnect";
 import Field from "../../../models/Field";
+import User from "../../../models/User";
 
-// GET /api/fields - returnă lista terenurilor
+// GET /api/fields - returnă toate terenurile (public)
 export async function GET() {
   try {
     await dbConnect();
@@ -19,7 +19,7 @@ export async function GET() {
   }
 }
 
-// POST /api/fields - adaugă un nou teren prin token manual
+// POST /api/fields - adaugă un teren și îl leagă de adminul logat
 export async function POST(request) {
   try {
     await dbConnect();
@@ -27,25 +27,26 @@ export async function POST(request) {
     // 1) Citește antetul Authorization
     const authHeader = request.headers.get("authorization");
     if (!authHeader) {
-      return NextResponse.json({ msg: "No Authorization header" }, { status: 401 });
+      return NextResponse.json({ msg: "Lipsește tokenul." }, { status: 401 });
     }
     const token = authHeader.split(" ")[1];
 
-    // 2) Verifică tokenul
+    // 2) Decodează și verifică tokenul
     let decoded;
     try {
       decoded = jwt.verify(token, process.env.JWT_SECRET || "mySecret");
     } catch (err) {
-      console.error("Eroare la verificarea tokenului:", err);
-      return NextResponse.json({ msg: "Invalid token" }, { status: 403 });
+      console.error("Token invalid:", err);
+      return NextResponse.json({ msg: "Token invalid." }, { status: 403 });
     }
 
-    // 3) Verifică rolul
-    if (decoded.role !== "admin") {
-      return NextResponse.json({ msg: "Forbidden" }, { status: 403 });
+    // 3) Verifică rolul și existența utilizatorului
+    const user = await User.findById(decoded.id);
+    if (!user || user.role !== "admin") {
+      return NextResponse.json({ msg: "Acces interzis. Doar adminii pot adăuga terenuri." }, { status: 403 });
     }
 
-    // 4) Citește corpul cererii
+    // 4) Preia datele din body
     const body = await request.json();
     const { name, location, sportType, pricePerHour, description, base64Image } = body;
 
@@ -53,19 +54,16 @@ export async function POST(request) {
       return NextResponse.json({ msg: "Parametri lipsă" }, { status: 400 });
     }
 
-    // 5) Creează obiectul Field
+    // 5) Creează noul teren cu owner setat
     const newField = new Field({
       name,
       location,
       sportType,
       pricePerHour,
       description,
+      owner: user._id, // 🔗 legăm terenul de admin
+      images: base64Image ? [base64Image] : [],
     });
-
-    // Dacă avem imagine Base64, o adăugăm în array-ul images
-    if (base64Image) {
-      newField.images.push(base64Image);
-    }
 
     await newField.save();
 

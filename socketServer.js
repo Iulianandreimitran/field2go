@@ -1,4 +1,3 @@
-// === socketServer.js ===
 require('dotenv').config({ path: '.env.local' });
 
 const mongoose = require('mongoose');
@@ -34,6 +33,25 @@ const io = new Server(httpServer, {
 io.on('connection', socket => {
   console.log("🟢 Socket conectat:", socket.id);
 
+  // === Chat Rezervări ===
+  socket.on('joinReservation', (reservationId) => {
+    socket.join(reservationId);
+    console.log(`Socket ${socket.id} joined reservation ${reservationId}`);
+  });
+
+  socket.on('reservationMessage', async ({ reservationId, text, senderId, senderName }) => {
+    const timestamp = new Date();
+    try {
+      await Reservation.findByIdAndUpdate(reservationId, {
+        $push: { messages: { sender: senderId, text, timestamp } }
+      });
+      io.to(reservationId).emit('message', { sender: senderName, text, timestamp });
+    } catch (err) {
+      console.error('❌ Eroare la salvarea mesajului în rezervare:', err);
+    }
+  });
+
+  // === Chat Prieteni ===
   socket.on('joinRoom', (roomId) => {
     socket.join(roomId);
     console.log(`Socket ${socket.id} joined room ${roomId}`);
@@ -44,23 +62,14 @@ io.on('connection', socket => {
     const timestamp = new Date();
 
     try {
-      if (mode === 'reservation') {
-        await Reservation.findByIdAndUpdate(roomId, {
-          $push: { messages: { sender: senderId, text, timestamp } }
-        });
-      } else if (mode === 'private') {
+      if (mode === 'private') {
         const [u1, u2] = roomId.split('_');
         const receiverId = senderId === u1 ? u2 : u1;
         await Message.create({ sender: senderId, receiver: receiverId, content: text, createdAt: timestamp });
+        io.to(roomId).emit('message', { sender: senderName, text, timestamp });
       }
-
-      io.to(roomId).emit('message', {
-        sender: senderName,
-        text,
-        timestamp
-      });
     } catch (err) {
-      console.error('❌ Eroare la salvarea mesajului:', err);
+      console.error('❌ Eroare la salvarea mesajului privat:', err);
     }
   });
 

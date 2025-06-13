@@ -11,30 +11,20 @@ export default function Header() {
   const { data: session, status } = useSession();
   const router = useRouter();
 
-  // Dacă utilizatorul s-a logat manual sau prin NextAuth
   const [localUsername, setLocalUsername] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
-    setLocalUsername(localStorage.getItem("username") || "");
+    // Fallback pentru nume dacă sesiunea nu e încă gata
+    setLocalUsername(
+      session?.user?.name || session?.user?.email || localStorage.getItem("username") || ""
+    );
+  }, [session]);
 
-    const handleProfileUpdate = (e) => {
-      const newUsername = e.detail?.username;
-      if (newUsername) {
-        setLocalUsername(newUsername);
-      } else {
-        setLocalUsername(localStorage.getItem("username") || "");
-      }
-    };
-    window.addEventListener("profileUpdate", handleProfileUpdate);
-    return () => {
-      window.removeEventListener("profileUpdate", handleProfileUpdate);
-    };
-  }, []);
+  const displayName =
+    session?.user?.name || session?.user?.email || localUsername || "Log in";
 
-  const displayName = session
-    ? session.user.name || session.user.email || localUsername
-    : localUsername || "Log in";
+  const userRole = session?.user?.role || "user";
 
   function handleFieldsClick() {
     router.push("/fields");
@@ -68,19 +58,8 @@ export default function Header() {
   }
 
   function handleLogOut() {
-    if (session) {
-      signOut({ callbackUrl: "/" });
-      localStorage.removeItem("token");
-      localStorage.removeItem("username");
-      localStorage.removeItem("email");
-      localStorage.removeItem("role");
-    } else {
-      localStorage.removeItem("token");
-      localStorage.removeItem("username");
-      localStorage.removeItem("email");
-      localStorage.removeItem("role");
-      window.location.reload();
-    }
+    signOut({ callbackUrl: "/" });
+    localStorage.clear();
   }
 
   return (
@@ -101,39 +80,56 @@ export default function Header() {
         </button>
       </div>
 
-      {/* Dacă utilizatorul e autentificat, afișăm SearchBar */}
+      {/* SearchBar dacă e autentificat */}
       <div className="flex-1 mx-4">
         {status === "authenticated" && <SearchBar />}
       </div>
 
-      {/* Salut și clopoțel */}
+      {/* Salut și meniul dropdown */}
       <div className="relative flex items-center space-x-4">
         <div onClick={handleHeaderClick} className="cursor-pointer">
           <span>{`Salut, ${displayName}`}</span>
         </div>
-        {(status === "authenticated" || localUsername) && <NotificationBell />}
+        {status === "authenticated" && <NotificationBell />}
 
         {menuOpen && (
           <div className="absolute top-full right-0 mt-2 bg-gray-800 rounded shadow-md text-white w-48 z-20">
             <ul className="py-2">
-              <li
-                className="px-4 py-2 hover:bg-gray-700 cursor-pointer"
-                onClick={handleProfileClick}
-              >
-                Profil
-              </li>
-              <li
-                className="px-4 py-2 hover:bg-gray-700 cursor-pointer"
-                onClick={handleMyReservations}
-              >
-                Rezervările Mele
-              </li>
-              <li
-                className="px-4 py-2 hover:bg-gray-700 cursor-pointer"
-                onClick={handleFriends}  /* Iată secțiunea „Prieteni” */
-              >
-                Prieteni
-              </li>
+              {userRole !== "admin" && (
+                <li
+                  className="px-4 py-2 hover:bg-gray-700 cursor-pointer"
+                  onClick={handleProfileClick}
+                >
+                  Profil
+                </li>
+              )}
+              {userRole === "admin" ? (
+                <li
+                  className="px-4 py-2 hover:bg-gray-700 cursor-pointer"
+                  onClick={() => {
+                    router.push("/admin/dashboard");
+                    setMenuOpen(false);
+                  }}
+                >
+                  Dashboard
+                </li>
+              ) : (
+                <>
+                  <li
+                    className="px-4 py-2 hover:bg-gray-700 cursor-pointer"
+                    onClick={handleMyReservations}
+                  >
+                    Rezervările Mele
+                  </li>
+                  <li
+                    className="px-4 py-2 hover:bg-gray-700 cursor-pointer"
+                    onClick={handleFriends}
+                  >
+                    Prieteni
+                  </li>
+                </>
+              )}
+
               <li
                 className="px-4 py-2 hover:bg-gray-700 cursor-pointer"
                 onClick={handleLogOut}
@@ -147,3 +143,4 @@ export default function Header() {
     </header>
   );
 }
+
