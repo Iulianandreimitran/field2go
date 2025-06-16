@@ -1,0 +1,110 @@
+user_id,field_id,sportType,location,pricePerHour,duration,date,reserved
+681f72f6719d59d08c485d97,67e49ca3c787f97dc73d9e74,fotbal,Str. Progresului nr. 90-100,180,3,2025-06-21,1
+681f72f6719d59d08c485d97,684ece652d2bb1f677cc7066,fotbal,"Strada Oltetului, nr. 30",200,0,,0
+681f72f6719d59d08c485d97,684eceed2d2bb1f677cc706e,Fotbal,"Calea Piscului, nr.10",160,0,,0
+681f72f6719d59d08c485d97,684e317645e59d9921d15558,fotbal,"Soseaua Oltenitei Nr 11, Popesti-Leordeni",170,0,,0
+681f74dbb60de78861460141,684ece652d2bb1f677cc7066,fotbal,"Strada Oltetului, nr. 30",200,3,2025-06-21,1
+681f74dbb60de78861460141,684e317645e59d9921d15558,fotbal,"Soseaua Oltenitei Nr 11, Popesti-Leordeni",170,2,2025-07-19,1
+681f74dbb60de78861460141,684ecfa42d2bb1f677cc707a,tenis,"Soseaua Nordului, nr. 7-9",50,3,2025-06-25,1
+681f74dbb60de78861460141,67e49ca3c787f97dc73d9e75,baschet,"Bd. Baschetului 10, București",85,2,2025-07-01,1
+681f74dbb60de78861460141,684ecf5c2d2bb1f677cc7076,tenis,"Strada Bascov, nr. 14-18",45,2,2025-06-26,1
+681f74dbb60de78861460141,684ecec02d2bb1f677cc706a,fotbal,"Strada Mures, nr. 4",175,2,2025-06-27,1
+681f74dbb60de78861460141,684eceed2d2bb1f677cc706e,Fotbal,"Calea Piscului, nr.10",160,0,,0
+681f74dbb60de78861460141,67edaa07bf2cfbd7de0566d0,Fotbal,Șoseaua Vitan-Bârzești 5-7,120,0,,0
+681f74dbb60de78861460141,67e49ca3c787f97dc73d9e76,tenis,"Bulevardul Basarabia nr. 37-39, Complex Sportiv Lia Manoliu",65,0,,0
+681f88e1b60de788614601b5,684e317645e59d9921d15558,fotbal,"Soseaua Oltenitei Nr 11, Popesti-Leordeni",170,0,,0
+681f88e1b60de788614601b5,684ecf2d2d2bb1f677cc7072,tenis,"Strada Oltetului, nr. 30",70,0,,0
+681f88e1b60de788614601b5,67e49ca3c787f97dc73d9e74,fotbal,Str. Progresului nr. 90-100,180,0,,0
+681f89beb60de788614601d2,684ecf2d2d2bb1f677cc7072,tenis,"Strada Oltetului, nr. 30",70,0,,0
+681f89beb60de788614601d2,67e49ca3c787f97dc73d9e75,baschet,"Bd. Baschetului 10, București",85,0,,0
+681f89beb60de788614601d2,67e49ca3c787f97dc73d9e74,fotbal,Str. Progresului nr. 90-100,180,0,,0
+681f8aefb60de788614601e8,684ecec02d2bb1f677cc706a,fotbal,"Strada Mures, nr. 4",175,0,,0
+681f8aefb60de788614601e8,684e317645e59d9921d15558,fotbal,"Soseaua Oltenitei Nr 11, Popesti-Leordeni",170,0,,0
+681f8aefb60de788614601e8,684ecfa42d2bb1f677cc707a,tenis,"Soseaua Nordului, nr. 7-9",50,0,,0
+68209b2299d71a3d9442fd16,684e317645e59d9921d15558,fotbal,"Soseaua Oltenitei Nr 11, Popesti-Leordeni",170,2,2025-06-25,1
+68209b2299d71a3d9442fd16,684ecf5c2d2bb1f677cc7076,tenis,"Strada Bascov, nr. 14-18",45,2,2025-06-24,1
+68209b2299d71a3d9442fd16,684ecfa42d2bb1f677cc707a,tenis,"Soseaua Nordului, nr. 7-9",50,3,2025-06-21,1
+68209b2299d71a3d9442fd16,67edaa07bf2cfbd7de0566d0,Fotbal,Șoseaua Vitan-Bârzești 5-7,120,0,,0
+68209b2299d71a3d9442fd16,67e49ca3c787f97dc73d9e75,baschet,"Bd. Baschetului 10, București",85,0,,0
+68209b2299d71a3d9442fd16,684ed00a2d2bb1f677cc7088,baschet,"Bd. Basarabia 37-39, Arena Nationala",75,0,,0
+6820af4e37197f520ce388c6,67e49ca3c787f97dc73d9e74,fotbal,Str. Progresului nr. 90-100,180,0,,0
+6820af4e37197f520ce388c6,67e49ca3c787f97dc73d9e75,baschet,"Bd. Baschetului 10, București",85,0,,0
+6820af4e37197f520ce388c6,684ece652d2bb1f677cc7066,fotbal,"Strada Oltetului, nr. 30",200,0,,0
+682236d23c40cc3409d2653e,67e49ca3c787f97dc73d9e75,baschet,"Bd. Baschetului 10, București",85,2,2025-06-12,1
+682236d23c40cc3409d2653e,67e49ca3c787f97dc73d9e76,tenis,"Bulevardul Basarabia nr. 37-39, Complex Sportiv Lia Manoliu",65,2,2025-06-29,1
+682236d23c40cc3409d2653e,684eceed2d2bb1f677cc706e,Fotbal,"Calea Piscului, nr.10",160,3,2025-06-28,1
+682236d23c40cc3409d2653e,684ecec02d2bb1f677cc706a,fotbal,"Strada Mures, nr. 4",175,2,2025-06-29,1
+682236d23c40cc3409d2653e,684ed00a2d2bb1f677cc7088,baschet,"Bd. Basarabia 37-39, Arena Nationala",75,0,,0
+682236d23c40cc3409d2653e,684ecfa42d2bb1f677cc707a,tenis,"Soseaua Nordului, nr. 7-9",50,0,,0
+682236d23c40cc3409d2653e,684ecf5c2d2bb1f677cc7076,tenis,"Strada Bascov, nr. 14-18",45,0,,0
+68224688c8a2562084ce4548,684ecfa42d2bb1f677cc707a,tenis,"Soseaua Nordului, nr. 7-9",50,0,,0
+68224688c8a2562084ce4548,67edaa07bf2cfbd7de0566d0,Fotbal,Șoseaua Vitan-Bârzești 5-7,120,0,,0
+68224688c8a2562084ce4548,684ecec02d2bb1f677cc706a,fotbal,"Strada Mures, nr. 4",175,0,,0
+683aecf694ca7e6c1a525094,684ecf5c2d2bb1f677cc7076,tenis,"Strada Bascov, nr. 14-18",45,0,,0
+683aecf694ca7e6c1a525094,684e317645e59d9921d15558,fotbal,"Soseaua Oltenitei Nr 11, Popesti-Leordeni",170,0,,0
+683aecf694ca7e6c1a525094,67edaa07bf2cfbd7de0566d0,Fotbal,Șoseaua Vitan-Bârzești 5-7,120,0,,0
+683dc0dc5a5c5a0ba3b8283b,684e317645e59d9921d15558,fotbal,"Soseaua Oltenitei Nr 11, Popesti-Leordeni",170,2,2025-06-27,1
+683dc0dc5a5c5a0ba3b8283b,684ece652d2bb1f677cc7066,fotbal,"Strada Oltetului, nr. 30",200,1,2025-06-21,1
+683dc0dc5a5c5a0ba3b8283b,684eceed2d2bb1f677cc706e,Fotbal,"Calea Piscului, nr.10",160,2,2025-06-28,1
+683dc0dc5a5c5a0ba3b8283b,67e49ca3c787f97dc73d9e75,baschet,"Bd. Baschetului 10, București",85,0,,0
+683dc0dc5a5c5a0ba3b8283b,67edaa07bf2cfbd7de0566d0,Fotbal,Șoseaua Vitan-Bârzești 5-7,120,0,,0
+683dc0dc5a5c5a0ba3b8283b,684ecfa42d2bb1f677cc707a,tenis,"Soseaua Nordului, nr. 7-9",50,0,,0
+684b7053e38bd470ab2c9762,67edaa07bf2cfbd7de0566d0,Fotbal,Șoseaua Vitan-Bârzești 5-7,120,0,,0
+684b7053e38bd470ab2c9762,684ecf2d2d2bb1f677cc7072,tenis,"Strada Oltetului, nr. 30",70,0,,0
+684b7053e38bd470ab2c9762,684ecfa42d2bb1f677cc707a,tenis,"Soseaua Nordului, nr. 7-9",50,0,,0
+684ed0dc2d2bb1f677cc70a1,684ecf5c2d2bb1f677cc7076,tenis,"Strada Bascov, nr. 14-18",45,2,2025-06-17,1
+684ed0dc2d2bb1f677cc70a1,684eceed2d2bb1f677cc706e,Fotbal,"Calea Piscului, nr.10",160,2,2025-06-22,1
+684ed0dc2d2bb1f677cc70a1,684ece652d2bb1f677cc7066,fotbal,"Strada Oltetului, nr. 30",200,2,2025-06-27,1
+684ed0dc2d2bb1f677cc70a1,684ecf2d2d2bb1f677cc7072,tenis,"Strada Oltetului, nr. 30",70,2,2025-06-18,1
+684ed0dc2d2bb1f677cc70a1,67edaa07bf2cfbd7de0566d0,Fotbal,Șoseaua Vitan-Bârzești 5-7,120,3,2025-06-29,1
+684ed0dc2d2bb1f677cc70a1,684ecec02d2bb1f677cc706a,fotbal,"Strada Mures, nr. 4",175,2,2025-06-22,1
+684ed0dc2d2bb1f677cc70a1,67e49ca3c787f97dc73d9e74,fotbal,Str. Progresului nr. 90-100,180,0,,0
+684ed0dc2d2bb1f677cc70a1,67e49ca3c787f97dc73d9e76,tenis,"Bulevardul Basarabia nr. 37-39, Complex Sportiv Lia Manoliu",65,0,,0
+684ed0dc2d2bb1f677cc70a1,684ed00a2d2bb1f677cc7088,baschet,"Bd. Basarabia 37-39, Arena Nationala",75,0,,0
+684ed0e52d2bb1f677cc70a4,684ece652d2bb1f677cc7066,fotbal,"Strada Oltetului, nr. 30",200,3,2025-06-21,1
+684ed0e52d2bb1f677cc70a4,684e317645e59d9921d15558,fotbal,"Soseaua Oltenitei Nr 11, Popesti-Leordeni",170,2,2025-06-25,1
+684ed0e52d2bb1f677cc70a4,684ecf2d2d2bb1f677cc7072,tenis,"Strada Oltetului, nr. 30",70,3,2025-06-21,1
+684ed0e52d2bb1f677cc70a4,684ecec02d2bb1f677cc706a,fotbal,"Strada Mures, nr. 4",175,0,,0
+684ed0e52d2bb1f677cc70a4,67e49ca3c787f97dc73d9e74,fotbal,Str. Progresului nr. 90-100,180,0,,0
+684ed0e52d2bb1f677cc70a4,684ecfa42d2bb1f677cc707a,tenis,"Soseaua Nordului, nr. 7-9",50,0,,0
+684ed0f32d2bb1f677cc70a7,67edaa07bf2cfbd7de0566d0,Fotbal,Șoseaua Vitan-Bârzești 5-7,120,3,2025-06-29,1
+684ed0f32d2bb1f677cc70a7,684ecec02d2bb1f677cc706a,fotbal,"Strada Mures, nr. 4",175,2,2025-06-30,1
+684ed0f32d2bb1f677cc70a7,684e317645e59d9921d15558,fotbal,"Soseaua Oltenitei Nr 11, Popesti-Leordeni",170,2,2025-07-01,1
+684ed0f32d2bb1f677cc70a7,684ed00a2d2bb1f677cc7088,baschet,"Bd. Basarabia 37-39, Arena Nationala",75,2,2025-06-23,1
+684ed0f32d2bb1f677cc70a7,684ecfa42d2bb1f677cc707a,tenis,"Soseaua Nordului, nr. 7-9",50,2,2025-06-27,1
+684ed0f32d2bb1f677cc70a7,684ecf2d2d2bb1f677cc7072,tenis,"Strada Oltetului, nr. 30",70,3,2025-06-20,1
+684ed0f32d2bb1f677cc70a7,684ecf5c2d2bb1f677cc7076,tenis,"Strada Bascov, nr. 14-18",45,2,2025-06-28,1
+684ed0f32d2bb1f677cc70a7,684eceed2d2bb1f677cc706e,Fotbal,"Calea Piscului, nr.10",160,0,,0
+684ed0f32d2bb1f677cc70a7,67e49ca3c787f97dc73d9e74,fotbal,Str. Progresului nr. 90-100,180,0,,0
+684ed0f32d2bb1f677cc70a7,67e49ca3c787f97dc73d9e76,tenis,"Bulevardul Basarabia nr. 37-39, Complex Sportiv Lia Manoliu",65,0,,0
+684ed1092d2bb1f677cc70aa,67e49ca3c787f97dc73d9e75,baschet,"Bd. Baschetului 10, București",85,2,2025-06-29,1
+684ed1092d2bb1f677cc70aa,684ece652d2bb1f677cc7066,fotbal,"Strada Oltetului, nr. 30",200,2,2025-06-21,1
+684ed1092d2bb1f677cc70aa,67e49ca3c787f97dc73d9e76,tenis,"Bulevardul Basarabia nr. 37-39, Complex Sportiv Lia Manoliu",65,0,,0
+684ed1092d2bb1f677cc70aa,684ecf5c2d2bb1f677cc7076,tenis,"Strada Bascov, nr. 14-18",45,0,,0
+684ed1092d2bb1f677cc70aa,684ed00a2d2bb1f677cc7088,baschet,"Bd. Basarabia 37-39, Arena Nationala",75,0,,0
+684ed1122d2bb1f677cc70ad,684ece652d2bb1f677cc7066,fotbal,"Strada Oltetului, nr. 30",200,2,2025-06-29,1
+684ed1122d2bb1f677cc70ad,684e317645e59d9921d15558,fotbal,"Soseaua Oltenitei Nr 11, Popesti-Leordeni",170,3,2025-06-27,1
+684ed1122d2bb1f677cc70ad,684ecfa42d2bb1f677cc707a,tenis,"Soseaua Nordului, nr. 7-9",50,0,,0
+684ed1122d2bb1f677cc70ad,684ecf2d2d2bb1f677cc7072,tenis,"Strada Oltetului, nr. 30",70,0,,0
+684ed1122d2bb1f677cc70ad,684ecec02d2bb1f677cc706a,fotbal,"Strada Mures, nr. 4",175,0,,0
+684ed11b2d2bb1f677cc70b0,67edaa07bf2cfbd7de0566d0,Fotbal,Șoseaua Vitan-Bârzești 5-7,120,3,2025-06-28,1
+684ed11b2d2bb1f677cc70b0,67e49ca3c787f97dc73d9e76,tenis,"Bulevardul Basarabia nr. 37-39, Complex Sportiv Lia Manoliu",65,2,2025-06-29,1
+684ed11b2d2bb1f677cc70b0,684eceed2d2bb1f677cc706e,Fotbal,"Calea Piscului, nr.10",160,3,2025-06-27,1
+684ed11b2d2bb1f677cc70b0,684ece652d2bb1f677cc7066,fotbal,"Strada Oltetului, nr. 30",200,2,2025-06-29,1
+684ed11b2d2bb1f677cc70b0,684ecfa42d2bb1f677cc707a,tenis,"Soseaua Nordului, nr. 7-9",50,3,2025-06-28,1
+684ed11b2d2bb1f677cc70b0,684ecf2d2d2bb1f677cc7072,tenis,"Strada Oltetului, nr. 30",70,2,2025-06-28,1
+684ed11b2d2bb1f677cc70b0,684ecec02d2bb1f677cc706a,fotbal,"Strada Mures, nr. 4",175,0,,0
+684ed11b2d2bb1f677cc70b0,67e49ca3c787f97dc73d9e74,fotbal,Str. Progresului nr. 90-100,180,0,,0
+684ed11b2d2bb1f677cc70b0,684e317645e59d9921d15558,fotbal,"Soseaua Oltenitei Nr 11, Popesti-Leordeni",170,0,,0
+684ed12f2d2bb1f677cc70b3,684ecfa42d2bb1f677cc707a,tenis,"Soseaua Nordului, nr. 7-9",50,0,,0
+684ed12f2d2bb1f677cc70b3,684ecec02d2bb1f677cc706a,fotbal,"Strada Mures, nr. 4",175,0,,0
+684ed12f2d2bb1f677cc70b3,67e49ca3c787f97dc73d9e74,fotbal,Str. Progresului nr. 90-100,180,0,,0
+684ed13b2d2bb1f677cc70b6,684ecfa42d2bb1f677cc707a,tenis,"Soseaua Nordului, nr. 7-9",50,2,2025-06-18,1
+684ed13b2d2bb1f677cc70b6,684eceed2d2bb1f677cc706e,Fotbal,"Calea Piscului, nr.10",160,3,2025-06-24,1
+684ed13b2d2bb1f677cc70b6,684ecf2d2d2bb1f677cc7072,tenis,"Strada Oltetului, nr. 30",70,2,2025-07-03,1
+684ed13b2d2bb1f677cc70b6,684e317645e59d9921d15558,fotbal,"Soseaua Oltenitei Nr 11, Popesti-Leordeni",170,2,2025-06-30,1
+684ed13b2d2bb1f677cc70b6,684ece652d2bb1f677cc7066,fotbal,"Strada Oltetului, nr. 30",200,3,2025-07-06,1
+684ed13b2d2bb1f677cc70b6,67edaa07bf2cfbd7de0566d0,Fotbal,Șoseaua Vitan-Bârzești 5-7,120,2,2025-06-20,1
+684ed13b2d2bb1f677cc70b6,67e49ca3c787f97dc73d9e76,tenis,"Bulevardul Basarabia nr. 37-39, Complex Sportiv Lia Manoliu",65,0,,0
+684ed13b2d2bb1f677cc70b6,67e49ca3c787f97dc73d9e75,baschet,"Bd. Baschetului 10, București",85,0,,0
+684ed13b2d2bb1f677cc70b6,67e49ca3c787f97dc73d9e74,fotbal,Str. Progresului nr. 90-100,180,0,,0

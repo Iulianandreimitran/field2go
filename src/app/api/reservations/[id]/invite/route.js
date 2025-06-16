@@ -1,84 +1,75 @@
-// src/app/api/reservations/[id]/invite/route.js
-import { NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth/next'
-import dbConnect from '@/utils/dbConnect'
-import Reservation from '@/models/Reservation'
-import User from '@/models/User'
-import { authOptions } from '@/app/api/auth/[...nextauth]/route'
+import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth/next";
+import dbConnect from "@/utils/dbConnect";
+import Reservation from "@/models/Reservation";
+import User from "@/models/User";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { getSocketServerInstance } from "@/utils/socketServerInstance";
 
-export async function POST(request, { params }) {
-  await dbConnect();
+// === POST /api/reservations/[id]/invite ===
+export async function POST(request, context) {
+  const { id } = context.params;
+
   const session = await getServerSession(authOptions);
   if (!session?.user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-  const ownerId = session.user.id;
-  const reservationId = params.id;
+
+  const currentUserId = session.user.id;
 
   let body;
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+    return NextResponse.json({ error: "Body invalid" }, { status: 400 });
   }
-  const { identifier } = body;
-  if (!identifier || typeof identifier !== 'string') {
-    return NextResponse.json({ error: 'Email sau username este obligatoriu.' }, { status: 400 });
-  }
-  const ident = identifier.trim();
 
-  // Lookup user după username sau email
+  const identifier = body.identifier?.trim();
+  if (!identifier) {
+    return NextResponse.json({ error: "Username/email lipsă" }, { status: 400 });
+  }
+
+  await dbConnect();
+
   const invitedUser = await User.findOne({
-    $or: [
-      { email: new RegExp(`^${ident}$`, 'i') },
-      { username: ident }
-    ]
-  });
+    $or: [{ username: identifier }, { email: identifier }],
+  }).lean();
+
   if (!invitedUser) {
-    return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    return NextResponse.json({ error: "Utilizatorul nu a fost găsit." }, { status: 404 });
   }
-  const invitedUserId = invitedUser._id.toString();
 
-  // Load rezervarea și verifică owner
-  const reservation = await Reservation.findById(reservationId);
+  const reservation = await Reservation.findById(id);
+
   if (!reservation) {
-    return NextResponse.json({ error: 'Rezervarea nu a fost găsită.' }, { status: 404 });
-  }
-  if (reservation.owner.toString() !== ownerId) {
-    return NextResponse.json({ error: 'Doar organizatorul poate trimite invitații.' }, { status: 403 });
+    return NextResponse.json({ error: "Rezervarea nu a fost găsită." }, { status: 404 });
   }
 
-  // Previi dublurile
-  const alreadyParticipant = reservation.participants
-    .map((p) => p.toString())
-    .includes(invitedUserId);
-  const alreadyInvited = reservation.invites
-    .map((i) => i.toString())
-    .includes(invitedUserId);
-  if (alreadyParticipant || alreadyInvited) {
-    return NextResponse.json(
-      { error: 'Userul este deja participant sau a fost deja invitat.' },
-      { status: 400 }
-    );
+  if (reservation.owner.toString() !== currentUserId) {
+    return NextResponse.json({ error: "Doar organizatorul poate invita." }, { status: 403 });
   }
 
-  // Adaugă în `invites`
+  const isAlreadyParticipant = reservation.participants.some(
+    (p) => p.toString() === invitedUser._id.toString()
+  );
+  const isAlreadyInvited = reservation.invites.some(
+    (i) => i.toString() === invitedUser._id.toString()
+  );
+  const isOwner = reservation.owner.toString() === invitedUser._id.toString();
+
+  if (isOwner || isAlreadyParticipant || isAlreadyInvited) {
+    return NextResponse.json({ error: "Utilizatorul este deja implicat." }, { status: 400 });
+  }
+
   reservation.invites.push(invitedUser._id);
   await reservation.save();
 
-  // Populează invitații pentru răspuns
-  await reservation.populate("invites", "username email");
+  // 🔔 Emitere notificare socket
+  const io = global._socketServerInstance?.();
+  if (io) {
+    io.to(invitedUser._id.toString()).emit("invite:new");
+    console.log(`📣 invite:new trimis către ${invitedUser._id}`);
+  }
 
-  return NextResponse.json({
-    invitedUser: {
-      id: invitedUserId,
-      username: invitedUser.username,
-      email: invitedUser.email,
-    },
-    invites: reservation.invites.map((u) => ({
-      id: u._id.toString(),
-      username: u.username,
-      email: u.email,
-    })),
-  });
+  return NextResponse.json({ success: true });
 }

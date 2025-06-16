@@ -5,23 +5,25 @@ import dbConnect from "@/utils/dbConnect";
 import Reservation from "@/models/Reservation";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
-export async function GET(request, { params }) {
+// === GET /api/reservations/[id] ===
+export async function GET(request, context) {
+  const { id } = context.params;
+
   await dbConnect();
 
-  // 1) Luăm sesiunea curentă (dacă există)
   const session = await getServerSession(authOptions);
-  if (!session || !session.user) {
+  if (!session?.user) {
     return NextResponse.json(
       { error: "Trebuie să fii autentificat pentru a vedea această rezervare." },
       { status: 401 }
     );
   }
+
   const currentUserId = session.user.id;
 
-  // 2) Încarcă rezervarea și populează owner, participants, invites etc.
   let reservation;
   try {
-    reservation = await Reservation.findById(params.id)
+    reservation = await Reservation.findById(id)
       .populate("field", "name")
       .populate("owner", "username email")
       .populate("participants", "username email")
@@ -42,24 +44,20 @@ export async function GET(request, { params }) {
     );
   }
 
-  // 3) Verifică dacă userul curent e owner sau participant
   const isOwner = reservation.owner._id.toString() === currentUserId;
   const isParticipant = (reservation.participants || [])
     .map((u) => u._id.toString())
     .includes(currentUserId);
 
   if (!isOwner && !isParticipant) {
-    // Dacă nu ești owner și nici participant, nu ai voie să accesezi
     return NextResponse.json(
       { error: "Nu ai acces să vizualizezi această rezervare." },
       { status: 403 }
     );
   }
 
-  // 4) Dacă ai acces, transformă rezervarea într‐un obiect JSON simplu
   const resObj = reservation.toObject();
 
-  // 4.a) Aplatizează câmpul `messages.sender` ca să fie un simplu username/email
   if (Array.isArray(resObj.messages)) {
     resObj.messages = resObj.messages.map((msg) => ({
       sender:
@@ -71,28 +69,28 @@ export async function GET(request, { params }) {
     }));
   }
 
-  // 5) Trimite răspunsul JSON
   return NextResponse.json(resObj);
 }
 
+// === PATCH /api/reservations/[id] ===
+export async function PATCH(request, context) {
+  const { id } = context.params;
 
-export async function PATCH(request, { params }) {
   await dbConnect();
 
-  // 1) Verifică sesiunea
   const session = await getServerSession(authOptions);
-  if (!session || !session.user) {
+  if (!session?.user) {
     return NextResponse.json(
       { error: "Trebuie să fii autentificat pentru a modifica această rezervare." },
       { status: 401 }
     );
   }
+
   const currentUserId = session.user.id;
 
-  // 2) Încarcă rezervarea
   let reservation;
   try {
-    reservation = await Reservation.findById(params.id);
+    reservation = await Reservation.findById(id);
   } catch (err) {
     console.error("Eroare la găsirea rezervării:", err);
     return NextResponse.json(
@@ -108,7 +106,6 @@ export async function PATCH(request, { params }) {
     );
   }
 
-  // 3) Permisiune: doar owner-ul poate schimba proprietatea `isPublic`
   if (reservation.owner.toString() !== currentUserId) {
     return NextResponse.json(
       { error: "Nu ai dreptul să modifici această rezervare." },
@@ -116,26 +113,23 @@ export async function PATCH(request, { params }) {
     );
   }
 
-  // 4) Citește corpul PATCH-ului și actualizează
   let body;
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json(
-      { error: "JSON invalid." },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: "JSON invalid." }, { status: 400 });
   }
 
   const { isPublic } = body;
   if (typeof isPublic !== "boolean") {
     return NextResponse.json(
-      { error: "Lipă valoarea isPublic sau e de tip incorect." },
+      { error: "Lipsește valoarea isPublic sau e de tip incorect." },
       { status: 400 }
     );
   }
 
   reservation.isPublic = isPublic;
+
   try {
     await reservation.save();
   } catch (err) {

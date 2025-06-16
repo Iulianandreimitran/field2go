@@ -56,7 +56,6 @@ export async function GET(req) {
   let filter = {};
 
   if (isMine) {
-    // Rezervările mele: fie sunt owner, fie participant, cu status = pending sau active
     filter = {
       $or: [
         { owner: currentUserId },
@@ -65,13 +64,11 @@ export async function GET(req) {
       status: { $in: ["pending", "active"] }
     };
   } else if (isInvited) {
-    // Invitațiile mele: invites conține ID‐ul meu, cu status = pending
     filter = {
       invites: currentUserId,
-      status:  "pending"
+      status: { $in: ["pending", "active"] }
     };
   } else {
-    // Alte situații (fără parametri speciali): doar rezervările active unde sunt implicat
     filter = {
       $or: [
         { owner: currentUserId },
@@ -80,6 +77,7 @@ export async function GET(req) {
       status: "active"
     };
   }
+
 
   const reservations = await Reservation.find(filter)
     .populate("field", "name")

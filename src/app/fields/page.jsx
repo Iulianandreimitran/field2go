@@ -1,23 +1,20 @@
-// src/app/fields/page.jsx
 "use client";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import PredictScore from "@/components/PredictScore"; // ✅ nou
 
 export default function FieldsPage() {
-  // Preia sesiunea și status (loading/authenticated/unauthenticated)
   const { data: session, status } = useSession();
   const router = useRouter();
   const [fields, setFields] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Fetch terenuri la mount
   useEffect(() => {
     async function fetchFields() {
       try {
         const res = await fetch("/api/fields", { credentials: "include" });
         const data = await res.json();
-        // API poate returna fie { fields: [...] } fie direct un array
         setFields(data.fields ?? data);
       } catch (err) {
         console.error("Eroare la preluarea terenurilor:", err);
@@ -28,7 +25,6 @@ export default function FieldsPage() {
     fetchFields();
   }, []);
 
-  // Determină dacă user-ul este admin din sesiune
   const isAdmin = session?.user?.role === "admin";
 
   const handleReserve = (fieldId) => {
@@ -39,7 +35,6 @@ export default function FieldsPage() {
     router.push("/admin/add-field");
   };
 
-  // Afișează loader până la fetch + sesiune gata
   if (status === "loading" || loading) {
     return (
       <div className="p-4 bg-gray-900 min-h-screen">
@@ -95,6 +90,14 @@ export default function FieldsPage() {
               {field.description && (
                 <p className="text-sm mb-2">{field.description}</p>
               )}
+
+              {/* 🔮 Predictie ML */}
+              {session?.user?.id && (
+                <div className="text-sm mt-1">
+                  <PredictScore userId={session.user.id} fieldId={field._id} />
+                </div>
+              )}
+
               <button
                 onClick={() => handleReserve(field._id)}
                 className="mt-auto bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700"
