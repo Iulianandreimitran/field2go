@@ -18,8 +18,8 @@ export async function GET(_, { params }) {
     return NextResponse.json({ msg: "Acces interzis" }, { status: 403 });
   }
 
-  const reservations = await Reservation.find({ field: params.fieldId }) // ✅ corect
-    .populate("owner", "username email") // poți folosi "owner" sau "participants" în plus, dacă vrei
+  const reservations = await Reservation.find({ field: params.fieldId }) 
+    .populate("owner", "username email") 
     .sort({ date: -1 });
 
   return NextResponse.json({ reservations, field });

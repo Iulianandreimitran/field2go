@@ -6,7 +6,6 @@ import { useSession } from 'next-auth/react';
 
 export default function ChatBox({ reservationId, initialMessages = [] }) {
   const { data: session } = useSession();
-  // Formatează mesajele inițiale pentru a avea numele expeditorului ca text
   const initialFormatted = initialMessages.map(msg => {
     const senderName = typeof msg.sender === 'object'
       ? (msg.sender.username || msg.sender.name || msg.sender.email || 'User')
@@ -24,23 +23,18 @@ export default function ChatBox({ reservationId, initialMessages = [] }) {
 
   useEffect(() => {
     if (!session?.user || !reservationId) return;
-    // Conectează la serverul Socket.IO (folosește origin-ul curent)
     const socket = io('http://localhost:3001', { transports: ['websocket'] });
     socketRef.current = socket;
-    // Alătură "camera" specifică rezervării pentru a primi mesaje
     socket.emit('joinReservation', reservationId);
-    // Primește mesaje de la server și actualizează lista
     socket.on('message', (msg) => {
       setMessages(prev => [...prev, msg]);
     });
-    // Cleanup la demontare: deconectează socket-ul
     return () => {
       socket.disconnect();
     };
   }, [session, reservationId]);
 
   useEffect(() => {
-    // Derulează automat la ultimul mesaj când lista de mesaje se schimbă
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
@@ -52,39 +46,50 @@ export default function ChatBox({ reservationId, initialMessages = [] }) {
       senderId: session.user.id || session.user.email || 'anon',
       senderName: session.user.username || session.user.name || session.user.email || 'Anon'
     };
-    // Trimite mesajul către server
     socketRef.current.emit('reservationMessage', msgData);
-    // Golește câmpul de input după trimitere (mesajul va apărea prin evenimentul de la server)
     setNewMsg('');
   };
 
   return (
-    <div className="border border-gray-700 rounded-lg p-4">
-      <div className="mb-3 overflow-y-auto bg-gray-800 p-3 rounded h-60">
+    <div className="flex flex-col h-full">
+      <div className="overflow-y-auto space-y-3 bg-gray-900 p-3 rounded-xl shadow-inner h-96">
         {messages.map((msg, idx) => {
-          const timeStr = msg.timestamp ? new Date(msg.timestamp).toLocaleString() : '';
+          const isOwn = msg.sender === (session?.user?.username || session?.user?.email);
+          const timeStr = msg.timestamp ? new Date(msg.timestamp).toLocaleString("ro-RO") : "";
+
           return (
-            <div key={idx} className="mb-2">
-              <span className="font-semibold">{msg.sender}:</span>
-              <span className="ml-2">{msg.text}</span>
-              {timeStr && (
-                <div className="text-xs text-gray-400">{timeStr}</div>
-              )}
+            <div
+              key={idx}
+              className={`max-w-[75%] px-4 py-2 rounded-2xl shadow-md text-sm break-words
+                ${isOwn
+                  ? "ml-auto bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-right"
+                  : "mr-auto bg-gray-800 text-gray-200 text-left"}
+              `}
+            >
+              <div className="font-semibold mb-1">{msg.sender}</div>
+              <div className="whitespace-pre-line">{msg.text}</div>
+              <div className="text-xs mt-1 text-gray-400">{timeStr}</div>
             </div>
           );
         })}
-        <div ref={messagesEndRef} />  {/* element invizibil pentru scroll */}
+        <div ref={messagesEndRef} />
       </div>
-      <div className="flex">
+
+      <div className="mt-4 flex items-center gap-2">
         <input
           type="text"
           value={newMsg}
-          onChange={e => setNewMsg(e.target.value)}
-          onKeyDown={e => { if (e.key === 'Enter') handleSendMessage(); }}
+          onChange={(e) => setNewMsg(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") handleSendMessage();
+          }}
           placeholder="Scrie un mesaj..."
-          className="flex-1 mr-2 px-2 py-1 rounded bg-white text-black"
+          className="flex-1 px-4 py-2 rounded-lg bg-gray-800 text-white placeholder-gray-400 border border-gray-600 focus:outline-none"
         />
-        <button onClick={handleSendMessage} className="bg-blue-600 hover:bg-blue-700 px-4 py-1 rounded text-white">
+        <button
+          onClick={handleSendMessage}
+          className="px-4 py-2 rounded-lg bg-gradient-to-r from-indigo-500 to-purple-600 hover:brightness-110 text-white font-semibold transition"
+        >
           Trimite
         </button>
       </div>

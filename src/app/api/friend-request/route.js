@@ -9,7 +9,7 @@ export async function POST(request) {
   await dbConnect();
   const session = await getServerSession(authOptions);
   if (!session) {
-    // User must be logged in
+
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -18,7 +18,7 @@ export async function POST(request) {
     const senderId = session.user.id;
     const receiverId = receiver;
 
-    // Validate request body
+
     if (!receiverId) {
       return NextResponse.json({ error: "Missing receiver user ID." }, { status: 400 });
     }
@@ -26,13 +26,13 @@ export async function POST(request) {
       return NextResponse.json({ error: "Nu poți trimite o cerere de prietenie către tine însuți." }, { status: 400 });
     }
 
-    // Ensure the receiver exists
+
     const receiverUser = await User.findById(receiverId);
     if (!receiverUser) {
       return NextResponse.json({ error: "Utilizatorul țintă nu există." }, { status: 404 });
     }
 
-    // Check if a friend request already exists between these two users (in either direction)
+
     const existingReq = await FriendRequest.findOne({
       $or: [
         { sender: senderId, receiver: receiverId },
@@ -43,22 +43,33 @@ export async function POST(request) {
       return NextResponse.json({ error: "O cerere de prietenie între acești utilizatori există deja." }, { status: 409 });
     }
 
-    // (Optional) Check if they are already friends (assuming User model has a friends list)
+
     const currentUser = await User.findById(senderId);
     if (currentUser?.friends?.includes(receiverId)) {
       return NextResponse.json({ error: "Sunteți deja prieteni cu acest utilizator." }, { status: 409 });
     }
 
-    // Create and save the new friend request
+ 
     const friendRequest = await FriendRequest.create({
       sender: senderId,
       receiver: receiverId
     });
-    // Populate sender and receiver fields with user info for response
+    
     await friendRequest.populate([
-      { path: "sender", select: "name email" },
-      { path: "receiver", select: "name email" }
+      { path: "sender", select: "username name email avatar" },
+      { path: "receiver", select: "username name email avatar" }
     ]);
+
+    await fetch(`http://localhost:3001/emit-friend-request`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        receiverId,
+        request: friendRequest
+      })
+    });
+
+
 
     return NextResponse.json({ friendRequest }, { status: 201 });
   } catch (err) {
@@ -76,13 +87,13 @@ export async function GET(request) {
 
   try {
     const userId = session.user.id;
-    // Friend requests received by the current user
+
     const receivedRequests = await FriendRequest.find({ receiver: userId })
-      .populate("sender", "name email")
+      .populate("sender", "username name email avatar")
       .lean();
-    // Friend requests sent by the current user
+
     const sentRequests = await FriendRequest.find({ sender: userId })
-      .populate("receiver", "name email")
+      .populate("receiver", "username name email avatar")
       .lean();
 
     return NextResponse.json(

@@ -18,16 +18,15 @@ export async function GET(request) {
         { email: { $regex: q, $options: "i" } },
       ],
     },
-    { username: 1, email: 1 } // luăm doar câmpurile necesare
+    { username: 1, email: 1 } 
   );
 
   const results = users.map((u) => ({
     id: u._id.toString(),
-    name: u.username, // atenție: aici `name` trebuie să fie exact `username`
+    name: u.username, 
     email: u.email,
   }));
 
-  // Sortare după relevanță (prefix mai întâi, apoi lungime mai scurtă)
   results.sort((a, b) => {
     const aName = a.name.toLowerCase();
     const bName = b.name.toLowerCase();

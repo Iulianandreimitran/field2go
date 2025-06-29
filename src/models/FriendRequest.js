@@ -11,5 +11,4 @@ const FriendRequestSchema = new mongoose.Schema({
   }
 }, { timestamps: true });
 
-// Reutilizare model dacă există (previne eroarea OverwriteModelError)
 export default mongoose.models.FriendRequest || mongoose.model("FriendRequest", FriendRequestSchema);

@@ -13,6 +13,7 @@ export async function GET(req) {
   const { searchParams } = new URL(req.url);
   const userId = session.user.id;
   const friendId = searchParams.get("userId");
+
   if (!friendId) {
     return new Response(JSON.stringify({ error: 'userId missing' }), { status: 400 });
   }
@@ -25,11 +26,15 @@ export async function GET(req) {
         { sender: userId, receiver: friendId },
         { sender: friendId, receiver: userId },
       ]
-    }).sort({ createdAt: 1 }).lean();
+    })
+    .sort({ createdAt: 1 })
+    .populate('sender', 'username name email') 
+    .lean();
 
     const formatted = messages.map(msg => ({
       text: msg.content,
-      sender: msg.sender.toString(),
+      senderId: msg.sender?._id?.toString() || msg.sender?.toString(),  
+      senderName: msg.sender?.username || msg.sender?.name || msg.sender?.email || 'User',
       timestamp: msg.createdAt
     }));
 

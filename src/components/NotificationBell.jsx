@@ -1,38 +1,72 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import io from 'socket.io-client';
+import { useSession } from 'next-auth/react';
 
 export default function NotificationBell() {
   const [count, setCount] = useState(0);
   const router = useRouter();
+  const { data: session } = useSession();
+  const socketRef = useRef(null);
 
-  // Fetch how many invites are pending
   const fetchCount = async () => {
     try {
-      const res = await fetch('/api/reservations?invited=true');
-      if (!res.ok) return;
-      const data = await res.json();
-      setCount(Array.isArray(data) ? data.length : 0);
+      const [invRes, friendRes] = await Promise.all([
+        fetch('/api/reservations?invited=true'),
+        fetch('/api/friend-request')
+      ]);
+
+      const invitedData = await invRes.json();
+      const friendData = await friendRes.json();
+
+      const invitesCount = Array.isArray(invitedData) ? invitedData.length : 0;
+      const friendReqCount = Array.isArray(friendData?.received) ? friendData.received.length : 0;
+
+      setCount(invitesCount + friendReqCount);
+
     } catch (e) {
-      console.error('Failed to fetch invite count', e);
+      console.error('Failed to fetch notifications count', e);
     }
   };
 
   useEffect(() => {
+    if (!session?.user?.id) return;
+
     fetchCount();
-    // Listen for any invite changes (accept/decline)
+
+    const socket = io("http://localhost:3001");
+    socketRef.current = socket;
+
+    socket.emit("joinUserRoom", session.user.id);
+
+    socket.on("invite:new", () => {
+      console.log("🔔 Invitație nouă primită! Actualizez clopoțelul.");
+      fetchCount();
+    });
+
+    socket.on("friend-request:new", () => {
+      console.log("👥 Cerere de prietenie nouă! Actualizez clopoțelul.");
+      fetchCount();
+    });
+
     const onChange = () => fetchCount();
     window.addEventListener('inviteChanged', onChange);
-    return () => window.removeEventListener('inviteChanged', onChange);
-  }, []);
+
+    return () => {
+      socket.off("invite:new");
+      socket.off("friend-request:new");
+      socket.disconnect();
+      window.removeEventListener('inviteChanged', onChange);
+    };
+  }, [session?.user?.id]);
 
   return (
     <div
       className="ml-4 relative cursor-pointer"
       onClick={() => router.push('/notifications')}
     >
-      {/* Bell icon (you can swap for your SVG) */}
       <svg
         xmlns="http://www.w3.org/2000/svg"
         className="h-6 w-6 text-white"

@@ -6,8 +6,11 @@ import ShowChatbot from "@/components/ShowChatbot";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "./api/auth/[...nextauth]/route";
 
+export const metadata = {
+  title: 'Field2Go',
+};
+
 export default async function RootLayout({ children }) {
-  // Obținem sesiunea server-side pentru a o injecta în SessionProvider
   const session = await getServerSession(authOptions);
 
   return (

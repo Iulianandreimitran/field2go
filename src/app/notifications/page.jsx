@@ -50,10 +50,11 @@ export default function NotificationsPage() {
     socketRef.current = socket;
 
     socket.emit("joinUserRoom", session.user.id);
+    console.log(`🟢 Trimis joinUserRoom cu id ${session.user.id}`);
 
     socket.on("connect", () => {
-      console.log("✅ Socket conectat, încarc notificările...");
-      loadAll(); // <--- apelăm doar după ce socketul e activ
+      console.log("✅ Socket conectat");
+      loadAll();
     });
 
     socket.on("invite:new", () => {
@@ -61,11 +62,20 @@ export default function NotificationsPage() {
       loadAll();
     });
 
+    socket.on("friend-request:new", ({ request }) => {
+      console.log("🔔 Cerere de prietenie nouă:", request);
+      setFriendRequests(prev => [request, ...prev]);
+    });
+
     return () => {
       socket.off("invite:new");
+      socket.off("friend-request:new");
       socket.disconnect();
     };
   }, [session?.user?.id]);
+
+
+
 
 
   const acceptInvite = async (reservationId) => {
@@ -78,10 +88,11 @@ export default function NotificationsPage() {
       if (res.ok) {
         setInvites(prev => prev.filter(inv => inv._id !== reservationId));
 
-        // 🔔 Emită eveniment de update pentru pagina rezervării
         if (socketRef.current) {
           socketRef.current.emit("reservation:trigger-update", reservationId);
         }
+
+        window.dispatchEvent(new Event('inviteChanged')); // ⚡️ Anunțăm clopoțelul
       }
     } catch (err) {
       console.error('Accept invite error:', err);
@@ -89,25 +100,27 @@ export default function NotificationsPage() {
   };
 
   const declineInvite = async (reservationId) => {
-  try {
-    const res = await fetch(`/api/reservations/${reservationId}/decline`, {
-      method: 'POST',
-      credentials: 'include'
-    });
+    try {
+      const res = await fetch(`/api/reservations/${reservationId}/decline`, {
+        method: 'POST',
+        credentials: 'include'
+      });
 
-    if (res.ok) {
-      setInvites(prev => prev.filter(inv => inv._id !== reservationId));
+      if (res.ok) {
+        setInvites(prev => prev.filter(inv => inv._id !== reservationId));
+        window.dispatchEvent(new Event('inviteChanged')); // ⚡️ Actualizăm clopoțelul
+      }
+    } catch (err) {
+      console.error("Decline invite error:", err);
     }
-  } catch (err) {
-    console.error("Decline invite error:", err);
-  }
-};
+  };
 
   const acceptFriendRequest = async (requestId) => {
     try {
       const res = await fetch(`/api/friend-request/${requestId}/accept`, { method: 'POST' });
       if (res.ok) {
         setFriendRequests(prev => prev.filter(fr => fr._id !== requestId));
+        window.dispatchEvent(new Event('inviteChanged')); // Actualizăm clopoțelul
       }
     } catch (err) {
       console.error('Accept friend error:', err);
@@ -119,11 +132,13 @@ export default function NotificationsPage() {
       const res = await fetch(`/api/friend-request/${requestId}/reject`, { method: 'POST' });
       if (res.ok) {
         setFriendRequests(prev => prev.filter(fr => fr._id !== requestId));
+        window.dispatchEvent(new Event('inviteChanged')); // Actualizăm clopoțelul
       }
     } catch (err) {
       console.error('Reject friend error:', err);
     }
   };
+
 
   if (!session) {
     return (
@@ -135,9 +150,9 @@ export default function NotificationsPage() {
 
   return (
     <div className="min-h-screen bg-gray-900 py-8 px-4 text-white">
-      <h1 className="text-3xl font-bold mb-6">Notificări</h1>
+      <h1 className="text-3xl font-bold mb-8 text-center">Notificări</h1>
 
-      {/* Cereri prietenie */}
+      {/* Cereri de prietenie */}
       <section className="mb-12">
         <h2 className="text-2xl font-semibold text-pink-500 mb-4">Cereri de prietenie</h2>
         {loadingFriendReq ? (
@@ -147,28 +162,43 @@ export default function NotificationsPage() {
         ) : (
           <ul className="space-y-4">
             {friendRequests.map(req => (
-              <li key={req._id} className="flex items-center bg-gray-800 p-4 rounded shadow">
-                {req.sender.avatar ? (
-                  <Image
-                    src={req.sender.avatar}
-                    alt="avatar"
-                    width={48}
-                    height={48}
-                    className="rounded-full mr-4"
-                  />
-                ) : (
-                  <div className="w-12 h-12 bg-gray-700 rounded-full mr-4" />
-                )}
-                <div className="flex-1">
+              <li
+                key={req._id}
+                className="flex items-center justify-between bg-gray-800 px-5 py-4 rounded-xl shadow hover:shadow-lg transition"
+              >
+                <div className="flex items-center space-x-4">
+                  {req.sender.avatar ? (
+                    <Image
+                      src={req.sender.avatar}
+                      alt="avatar"
+                      width={48}
+                      height={48}
+                      className="rounded-full"
+                    />
+                  ) : (
+                    <div className="w-12 h-12 bg-gray-700 rounded-full flex items-center justify-center text-white font-bold">
+                      {req?.sender?.username?.[0]?.toUpperCase() || "?"}
+                    </div>
+                  )}
                   <p>
-                    <strong className="text-pink-400">{req.sender.username}</strong> ți-a trimis o cerere.
+                    <span className="text-pink-400 font-semibold">
+                      {req?.sender?.username || req?.sender?.name || "Utilizator necunoscut"}
+                    </span>{" "}
+                    ți-a trimis o cerere.
                   </p>
                 </div>
+
                 <div className="flex gap-2">
-                  <button onClick={() => acceptFriendRequest(req._id)} className="bg-green-600 px-3 py-1 rounded">
+                  <button
+                    onClick={() => acceptFriendRequest(req._id)}
+                    className="bg-gradient-to-r from-green-500 to-green-600 hover:brightness-110 text-white px-4 py-1.5 rounded-lg text-sm"
+                  >
                     Acceptă
                   </button>
-                  <button onClick={() => rejectFriendRequest(req._id)} className="bg-red-600 px-3 py-1 rounded">
+                  <button
+                    onClick={() => rejectFriendRequest(req._id)}
+                    className="bg-red-600 hover:bg-red-700 text-white px-4 py-1.5 rounded-lg text-sm"
+                  >
                     Refuză
                   </button>
                 </div>
@@ -178,7 +208,7 @@ export default function NotificationsPage() {
         )}
       </section>
 
-      {/* Invitații rezervări */}
+      {/* Invitații la terenuri */}
       <section>
         <h2 className="text-2xl font-semibold text-blue-400 mb-4">Invitații la terenuri</h2>
         {loadingInvites ? (
@@ -188,21 +218,27 @@ export default function NotificationsPage() {
         ) : (
           <div className="space-y-4">
             {invites.map(inv => (
-              <div key={inv._id} className="bg-gray-800 p-5 rounded-xl shadow">
-                <h3 className="text-xl text-blue-300 font-semibold mb-1">{inv.field?.name || 'Teren necunoscut'}</h3>
-                <p><strong>Data:</strong> {new Date(inv.date).toLocaleDateString('ro-RO')}</p>
+              <div
+                key={inv._id}
+                className="bg-gray-800 px-5 py-4 rounded-xl shadow hover:shadow-lg transition"
+              >
+                <h3 className="text-xl font-semibold text-blue-300 mb-2">
+                  {inv.field?.name || "Teren necunoscut"}
+                </h3>
+                <p><strong>Data:</strong> {new Date(inv.date).toLocaleDateString("ro-RO")}</p>
                 <p><strong>Ora:</strong> {inv.startTime}</p>
                 <p><strong>Organizator:</strong> {inv.owner?.username || inv.owner?.email}</p>
+
                 <div className="flex justify-end gap-3 mt-4">
                   <button
                     onClick={() => acceptInvite(inv._id)}
-                    className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded"
+                    className="bg-gradient-to-r from-green-500 to-green-600 hover:brightness-110 text-white px-4 py-1.5 rounded-lg text-sm"
                   >
                     Acceptă
                   </button>
                   <button
                     onClick={() => declineInvite(inv._id)}
-                    className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded"
+                    className="bg-red-600 hover:bg-red-700 text-white px-4 py-1.5 rounded-lg text-sm"
                   >
                     Refuză
                   </button>
@@ -214,4 +250,5 @@ export default function NotificationsPage() {
       </section>
     </div>
   );
+
 }

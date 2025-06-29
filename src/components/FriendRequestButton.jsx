@@ -4,12 +4,11 @@
 import { useState } from "react";
 
 export default function FriendRequestButton({ targetUserId }) {
-  const [status, setStatus] = useState("idle"); // "idle" | "sending" | "sent" | "error"
+  const [status, setStatus] = useState("idle"); 
 
   const handleSendRequest = async () => {
     setStatus("sending");
     try {
-      // --- Schimbăm cîmpul JSON din { targetUserId } în { receiver: targetUserId } ---
       const res = await fetch("/api/friend-request", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -46,7 +45,7 @@ export default function FriendRequestButton({ targetUserId }) {
       </button>
     );
   }
-  // status === "idle" sau "error"
+
   return (
     <button
       onClick={handleSendRequest}

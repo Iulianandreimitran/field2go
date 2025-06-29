@@ -5,7 +5,7 @@ import dbConnect from "@/utils/dbConnect";
 import Reservation from "@/models/Reservation";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
-// === GET /api/reservations/[id] ===
+
 export async function GET(request, context) {
   const { id } = context.params;
 
@@ -72,7 +72,7 @@ export async function GET(request, context) {
   return NextResponse.json(resObj);
 }
 
-// === PATCH /api/reservations/[id] ===
+
 export async function PATCH(request, context) {
   const { id } = context.params;
 

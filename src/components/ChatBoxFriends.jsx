@@ -1,4 +1,3 @@
-// === components/ChatBoxFriends.jsx ===
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
@@ -7,7 +6,19 @@ import { useSession } from 'next-auth/react';
 
 export default function ChatBoxFriends({ roomId, friendId, initialMessages = [] }) {
   const { data: session } = useSession();
-  const [messages, setMessages] = useState(initialMessages);
+
+  const initialFormatted = initialMessages.map(msg => {
+    const senderName = typeof msg.sender === 'object'
+      ? (msg.sender.username || msg.sender.name || msg.sender.email || 'User')
+      : msg.sender;
+    return {
+      sender: senderName,
+      text: msg.text,
+      timestamp: msg.timestamp
+    };
+  });
+
+  const [messages, setMessages] = useState(initialFormatted);
   const [newMsg, setNewMsg] = useState('');
   const socketRef = useRef(null);
   const messagesEndRef = useRef(null);
@@ -15,15 +26,22 @@ export default function ChatBoxFriends({ roomId, friendId, initialMessages = [] 
   useEffect(() => {
     if (!session?.user || !roomId) return;
 
-    const socket = io('http://localhost:3001', {
-      transports: ['websocket'],
-    });
+    const socket = io('http://localhost:3001', { transports: ['websocket'] });
     socketRef.current = socket;
 
     socket.emit('joinRoom', roomId);
 
     socket.on('message', (msg) => {
-      setMessages(prev => [...prev, msg]);
+      const senderName = typeof msg.sender === 'object'
+        ? (msg.sender.username || msg.sender.name || msg.sender.email || 'User')
+        : msg.sender;
+
+      if (msg.senderId === session?.user?.id) return; 
+      setMessages(prev => [...prev, {
+        sender: senderName,
+        text: msg.text,
+        timestamp: msg.timestamp
+      }]);
     });
 
     return () => {
@@ -41,38 +59,61 @@ export default function ChatBoxFriends({ roomId, friendId, initialMessages = [] 
     const msgData = {
       roomId,
       text: newMsg.trim(),
-      senderId: session.user.id,
-      senderName: session.user.username || session.user.name || session.user.email,
+      senderId: session.user.id || session.user.email || 'anon',
+      senderName: session.user.username || session.user.name || session.user.email || 'Anon',
       mode: 'private',
     };
+
+    setMessages(prev => [
+      ...prev,
+      {
+        sender: msgData.senderName,
+        text: msgData.text,
+        timestamp: new Date().toISOString()
+      }
+    ]);
+
     socketRef.current.emit('message', msgData);
     setNewMsg('');
   };
 
   return (
-    <div className="border border-gray-700 rounded-lg p-4">
-      <div className="mb-3 overflow-y-auto bg-gray-800 p-3 rounded h-60">
-        {messages.map((msg, idx) => (
-          <div key={idx} className="mb-2">
-            <span className="font-semibold">{msg.sender}:</span>
-            <span className="ml-2">{msg.text}</span>
-            {msg.timestamp && (
-              <div className="text-xs text-gray-400">{new Date(msg.timestamp).toLocaleString()}</div>
-            )}
-          </div>
-        ))}
+    <div className="flex flex-col h-full">
+      <div className="overflow-y-auto space-y-3 bg-gray-900 p-3 rounded-xl shadow-inner h-96">
+        {messages.map((msg, idx) => {
+          const isOwn = msg.sender === (session?.user?.username || session?.user?.email);
+          const timeStr = msg.timestamp ? new Date(msg.timestamp).toLocaleString("ro-RO") : "";
+
+          return (
+            <div
+              key={idx}
+              className={`max-w-[75%] px-4 py-2 rounded-2xl shadow-md text-sm break-words
+                ${isOwn
+                  ? "ml-auto bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-right"
+                  : "mr-auto bg-gray-800 text-gray-200 text-left"}`}
+            >
+              <div className="font-semibold mb-1">{msg.sender}</div>
+              <div className="whitespace-pre-line">{msg.text}</div>
+              <div className="text-xs mt-1 text-gray-400">{timeStr}</div>
+            </div>
+          );
+        })}
         <div ref={messagesEndRef} />
       </div>
-      <div className="flex">
+
+      <div className="mt-4 flex items-center gap-2">
         <input
           type="text"
           value={newMsg}
           onChange={e => setNewMsg(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter') handleSendMessage(); }}
           placeholder="Scrie un mesaj..."
-          className="flex-1 mr-2 px-2 py-1 rounded bg-white text-black"
+          className="flex-1 px-4 py-2 rounded-lg bg-gray-800 text-white placeholder-gray-400 border border-gray-600 focus:outline-none"
         />
-        <button onClick={handleSendMessage} className="bg-blue-600 hover:bg-blue-700 px-4 py-1 rounded text-white">
+        <button
+          onClick={handleSendMessage}
+          className="px-4 py-2 rounded-lg bg-gradient-to-r from-indigo-500 to-purple-600 hover:brightness-110 text-white font-semibold transition"
+        >
           Trimite
         </button>
       </div>

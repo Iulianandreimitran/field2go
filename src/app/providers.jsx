@@ -5,7 +5,6 @@ import { SessionProvider } from "next-auth/react";
 
 export default function Providers({ children }) {
   return (
-    // SessionProvider se ocupă de furnizarea sesiunii către useSession()
     <SessionProvider>{children}</SessionProvider>
   );
 }

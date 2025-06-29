@@ -9,25 +9,20 @@ import FriendRequest from "@/models/FriendRequest";
 import FriendRequestButton from "@/components/FriendRequestButton";
 
 export default async function UserProfilePage({ params }) {
-  // Așteptăm `params` înainte de a-l despacheta:
   const { username } = await params;  
 
-  // 1. Conectăm la MongoDB
   await dbConnect();
 
-  // 2. Căutăm documentul User după câmpul username
   const user = await User.findOne({ username: username });
   if (!user) {
     return <div className="p-4 text-white bg-gray-900">Utilizatorul nu a fost găsit.</div>;
   }
 
-  // 3. Luăm rezervările publice ale acestui utilizator
   const publicReservations = await Reservation.find({
     user: user._id,
     isPublic: true,
   }).lean();
 
-  // 4. Determinăm starea butonului de prietenie
   const session = await getServerSession(authOptions);
   let showRequestButton = false;
   let requestAlreadySent = false;
@@ -58,60 +53,71 @@ export default async function UserProfilePage({ params }) {
     }
   }
 
-  // 5. Rândăm pagina
   return (
-    <div className="min-h-screen bg-gray-900 text-white p-4">
-      <div className="max-w-md mx-auto bg-gray-800 rounded-lg p-6 shadow">
-        <h1 className="text-2xl font-bold mb-4">{user.username}</h1>
-        {user.avatar ? (
-          <Image
-            src={user.avatar}
-            alt="Avatar"
-            width={120}
-            height={120}
-            className="rounded-full mb-4"
-          />
-        ) : (
-          <div className="w-24 h-24 bg-gray-700 rounded-full mb-4" />
-        )}
-        <p className="mb-4">{user.bio || "Nicio descriere."}</p>
+    <div className="min-h-screen bg-gray-900 text-white p-6">
+      <div className="max-w-lg mx-auto bg-gray-800 rounded-2xl shadow-xl p-6">
+        <div className="flex flex-col items-center">
+          {user.avatar ? (
+            <Image
+              src={user.avatar}
+              alt="Avatar"
+              width={100}
+              height={100}
+              className="rounded-full mb-4 object-cover border-4 border-purple-500"
+            />
+          ) : (
+            <div className="w-24 h-24 bg-gray-700 rounded-full mb-4" />
+          )}
+          <h1 className="text-2xl font-bold mb-1">{user.username}</h1>
+          <p className="text-gray-300 mb-4">
+            {user.bio || "Nicio descriere."}
+          </p>
 
-        {showRequestButton && (
-          <FriendRequestButton targetUserId={user._id.toString()} />
-        )}
-        {requestAlreadySent && (
-          <div className="px-3 py-2 bg-yellow-600 text-gray-900 rounded mb-4">
-            Cerere de prietenie trimisă.
-          </div>
-        )}
-        {isFriend && (
-          <div className="px-3 py-2 bg-green-600 text-gray-900 rounded mb-4">
-            Sunteți prieteni.
-          </div>
-        )}
+          {showRequestButton && (
+            <FriendRequestButton targetUserId={user._id.toString()} />
+          )}
+          {requestAlreadySent && (
+            <div className="px-3 py-2 bg-yellow-500 text-black rounded mb-3 font-medium">
+              Cerere de prietenie trimisă
+            </div>
+          )}
+          {isFriend && (
+            <div className="px-3 py-2 bg-green-500 text-black rounded mb-3 font-medium">
+              Sunteți prieteni
+            </div>
+          )}
+        </div>
 
-        <h2 className="text-xl font-semibold mt-6 mb-2">Rezervări Publice</h2>
-        {publicReservations.length === 0 ? (
-          <p>Nu are rezervări publice.</p>
-        ) : (
-          <ul className="space-y-2">
-            {publicReservations.map((res) => (
-              <li
-                key={res._id}
-                className="bg-gray-700 p-3 rounded hover:bg-gray-600 transition"
-              >
-                <strong>{res.title || "Fără titlu"}</strong>
-                <br />
-                {new Date(res.date).toLocaleDateString("ro-RO", {
-                  year: "numeric",
-                  month: "2-digit",
-                  day: "2-digit",
-                })}
-              </li>
-            ))}
-          </ul>
-        )}
+        <div className="mt-6">
+          <h2 className="text-xl font-semibold mb-3 border-b border-gray-700 pb-1">
+            Rezervări Publice
+          </h2>
+          {publicReservations.length === 0 ? (
+            <p className="text-gray-400">Nu are rezervări publice.</p>
+          ) : (
+            <ul className="space-y-2">
+              {publicReservations.map((res) => (
+                <li
+                  key={res._id}
+                  className="bg-gray-700 px-4 py-3 rounded-lg hover:bg-gray-600 transition"
+                >
+                  <p className="font-semibold text-purple-400">
+                    {res.title || "Fără titlu"}
+                  </p>
+                  <p className="text-sm text-gray-300">
+                    {new Date(res.date).toLocaleDateString("ro-RO", {
+                      year: "numeric",
+                      month: "2-digit",
+                      day: "2-digit",
+                    })}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       </div>
     </div>
   );
+
 }

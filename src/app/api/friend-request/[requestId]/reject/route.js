@@ -23,7 +23,6 @@ export async function POST(request, { params }) {
     }
 
     const userId = session.user.id;
-    // Only the receiver can reject/decline the request
     if (friendRequest.receiver.toString() !== userId) {
       return NextResponse.json({ error: "Nu ești autorizat să respingi această cerere de prietenie." }, { status: 403 });
     }
@@ -31,7 +30,6 @@ export async function POST(request, { params }) {
     const senderId = friendRequest.sender.toString();
     const receiverId = friendRequest.receiver.toString();
 
-    // Remove this friend request and any opposite request (if it exists)
     await FriendRequest.deleteMany({
       $or: [
         { _id: requestId },

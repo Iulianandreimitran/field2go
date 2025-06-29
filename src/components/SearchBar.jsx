@@ -50,7 +50,7 @@ export default function SearchBar() {
     <div ref={inputRef} className="relative w-80">
       <input
         type="text"
-        className="w-full px-3 py-1 rounded-md bg-gray-800 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+        className="w-full px-4 py-2 rounded-lg bg-gray-800 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
         placeholder="Caută utilizatori..."
         value={query}
         onChange={(e) => setQuery(e.target.value)}
@@ -59,23 +59,23 @@ export default function SearchBar() {
         }}
       />
       {showDropdown && suggestions.length > 0 && (
-        <ul className="absolute z-10 w-full bg-gray-800 text-white rounded-md mt-1 shadow-lg max-h-60 overflow-y-auto">
+        <ul className="absolute z-10 w-full bg-gray-800 text-white rounded-lg mt-1 shadow-lg max-h-64 overflow-y-auto border border-gray-700">
           {suggestions.map((user) => (
             <li
               key={user.id}
-              className="px-3 py-2 hover:bg-gray-700 cursor-pointer"
+              className="px-4 py-2 hover:bg-gray-700 cursor-pointer transition-all"
               onClick={() => {
                 setShowDropdown(false);
                 setQuery("");
-                // Navigăm la /users/[username], nu la /users/[id]
                 router.push(`/users/${user.name}`);
               }}
             >
-              {user.name} ({user.email})
+              <div className="font-medium text-white">{user.name}</div>
+              <div className="text-sm text-gray-400">{user.email}</div>
             </li>
           ))}
           <li
-            className="px-3 py-2 hover:bg-gray-700 cursor-pointer font-semibold"
+            className="px-4 py-2 text-center font-semibold text-blue-400 hover:bg-gray-700 cursor-pointer transition"
             onClick={() => {
               setShowDropdown(false);
               router.push(`/users/search?query=${encodeURIComponent(query)}`);
@@ -87,4 +87,5 @@ export default function SearchBar() {
       )}
     </div>
   );
+
 }

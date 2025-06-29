@@ -38,10 +38,9 @@ export default function PublicReservationsPage() {
     return <div className="p-4 text-red-400">{errorMsg}</div>;
   }
 
-  // Filtrăm rez. expirate: comparăm cu momentul actual
+
   const now = new Date();
   const upcoming = reservations.filter((res) => {
-    // res.date = "YYYY-MM-DD", res.startTime = "HH:mm"
     const [Y, M, D] = res.date.split("-").map((x) => parseInt(x, 10));
     const [h, m] = res.startTime.split(":").map((x) => parseInt(x, 10));
     const dt = new Date(Y, M - 1, D, h, m, 0);
@@ -56,7 +55,6 @@ export default function PublicReservationsPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {upcoming.map((res) => {
-            // Afișăm data și ora locală
             const [Y, M, D] = res.date.split("-").map((x) => parseInt(x, 10));
             const [h, m] = res.startTime.split(":").map((x) => parseInt(x, 10));
             const dt = new Date(Y, M - 1, D, h, m, 0);

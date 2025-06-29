@@ -15,18 +15,18 @@ export async function POST(req, context) {
   const { id: reservationId } = context.params;
   const { userId: kickUserId } = await req.json();
 
-  // Găsim rezervarea
+
   const reservation = await Reservation.findById(reservationId);
   if (!reservation) {
     return NextResponse.json({ error: "Reservation not found" }, { status: 404 });
   }
 
-  // Verificăm că doar owner-ul poate da kick
+
   if (reservation.owner.toString() !== currentUserId) {
     return NextResponse.json({ error: "Nu ai dreptul să dai kick" }, { status: 403 });
   }
 
-  // Verificăm că userul există în participants
+
   const exists = reservation.participants.some((p) => p.toString() === kickUserId);
   if (!exists) {
     return NextResponse.json({ error: "Userul nu este participant" }, { status: 404 });

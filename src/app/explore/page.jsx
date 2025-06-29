@@ -129,13 +129,17 @@ export default function PublicReservationsPage() {
               .map((p) => p.username || p.email);
 
             return (
-              <div key={resv._id} className="bg-gray-800 rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition-shadow">
+              <div
+                key={resv._id}
+                className="bg-gray-800 rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition-shadow"
+              >
                 <div className="p-6">
-                  <h2 className="text-2xl font-semibold text-pink-500 mb-2">
-                    {resv.field?.name || '—'}
+                  <h2 className="text-2xl font-semibold text-purple-400 mb-2">
+                    {resv.field?.name || "—"}
                   </h2>
                   <p className="text-gray-300 text-sm">
-                    <span className="font-medium">Data:</span> {dateStr} | <span className="font-medium">Ora:</span> {timeStr}
+                    <span className="font-medium">Data:</span> {dateStr} |{" "}
+                    <span className="font-medium">Ora:</span> {timeStr}
                   </p>
                   <p className="text-gray-300 text-sm mt-1">
                     <span className="font-medium">Durată:</span> {resv.duration} ore
@@ -145,13 +149,15 @@ export default function PublicReservationsPage() {
                   </p>
                   <p className="text-gray-300 text-sm mt-1">
                     <span className="font-medium">Participanți:</span>{" "}
-                    {participantsList.length > 0 ? participantsList.join(", ") : "Doar owner-ul"}
+                    {participantsList.length > 0
+                      ? participantsList.join(", ")
+                      : "Doar owner-ul"}
                   </p>
                 </div>
                 <div className="bg-gray-700 px-6 py-4 flex justify-end">
                   <button
                     onClick={() => handleJoin(resv._id)}
-                    className="bg-pink-600 hover:bg-pink-700 text-white font-semibold py-2 px-4 rounded-lg transition"
+                    className="bg-gradient-to-r from-purple-600 to-pink-600 hover:brightness-110 text-white font-semibold py-2 px-4 rounded-lg transition"
                   >
                     Alătură-te
                   </button>

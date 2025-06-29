@@ -13,7 +13,6 @@ export default function LoginPage() {
   const [message, setMessage] = useState('')
   const [showPwd, setShowPwd] = useState(false)
 
-  // 🔐 Login normal (email + parolă)
   async function handleSubmit(e) {
     e.preventDefault()
     setMessage('')
@@ -27,75 +26,87 @@ export default function LoginPage() {
     if (res?.error) {
       setMessage('Eroare: ' + res.error)
     } else {
-      router.push('/') // sau redirect spre dashboard
+      router.push('/') 
     }
   }
 
-  // 🌐 Login Google
+
   function handleGoogleSignIn() {
-    signIn('google', { callbackUrl: '/' }) // sau redirect spre /dashboard dacă vrei
+    signIn('google', { callbackUrl: '/' }) 
   }
 
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-900 p-4">
-      <div className="w-full max-w-md bg-gray-800 rounded-lg shadow-lg p-6">
-        <h1 className="text-3xl font-bold text-white text-center mb-6">Autentificare</h1>
-        {message && <p className="mb-4 text-red-400 text-center">{message}</p>}
+   return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-900">
+      <div className="flex shadow-xl rounded-2xl overflow-hidden max-w-4xl w-full">
+        {/* LEFT: FORMULAR */}
+        <div className="w-full md:w-1/2 bg-gray-800 p-8 flex flex-col justify-center">
+          <h1 className="text-3xl font-bold text-white text-center mb-6">Autentificare</h1>
+          {message && <p className="mb-4 text-red-400 text-center">{message}</p>}
 
-        <form onSubmit={handleSubmit} className="space-y-4 mb-6">
-          <div>
-            <label className="block text-white mb-1">Email</label>
-            <input
-              type="email"
-              value={email}
-              required
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-3 py-2 bg-gray-700 text-white rounded"
-              placeholder="you@example.com"
-            />
-          </div>
+          <form onSubmit={handleSubmit} className="space-y-4 mb-6">
+            <div>
+              <label className="block text-white mb-1">Email</label>
+              <input
+                type="email"
+                value={email}
+                required
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full px-4 py-2 bg-gray-700 text-white placeholder-gray-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500"
+                placeholder="you@example.com"
+              />
+            </div>
 
-          <div className="relative">
-            <label className="block text-white mb-1">Parolă</label>
-            <input
-              type={showPwd ? 'text' : 'password'}
-              value={password}
-              required
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-3 py-2 bg-gray-700 text-white rounded pr-10"
-              placeholder="Parola"
-            />
+            <div className="relative">
+              <label className="block text-white mb-1">Parolă</label>
+              <input
+                type={showPwd ? 'text' : 'password'}
+                value={password}
+                required
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full px-4 py-2 bg-gray-700 text-white placeholder-gray-400 rounded-lg pr-10 focus:outline-none focus:ring-2 focus:ring-pink-500"
+                placeholder="Parola"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPwd((v) => !v)}
+                className="absolute top-9 right-3 text-gray-400 text-sm"
+                tabIndex={-1}
+              >
+                {showPwd ? '🙈' : '👁️'}
+              </button>
+            </div>
+
             <button
-              type="button"
-              onClick={() => setShowPwd((v) => !v)}
-              className="absolute top-9 right-3 text-gray-400"
-              tabIndex={-1}
+              type="submit"
+              className="w-full py-2 bg-gradient-to-r from-green-400 to-green-600 text-white font-semibold rounded-lg shadow hover:shadow-md hover:brightness-110 transition duration-200"
             >
-              {showPwd ? '🙈' : '👁️'}
+              Log in
             </button>
-          </div>
+          </form>
 
           <button
-            type="submit"
-            className="w-full py-2 px-4 bg-green-600 text-white rounded hover:bg-green-700"
+            onClick={handleGoogleSignIn}
+            className="w-full py-2 bg-gradient-to-r from-blue-500 to-blue-700 text-white font-medium rounded-lg shadow hover:shadow-md transition duration-200 mb-4"
           >
-            Log in
+            Autentificare cu Google
           </button>
-        </form>
 
-        <button
-          onClick={handleGoogleSignIn}
-          className="w-full py-2 px-4 bg-blue-600 text-white rounded hover:bg-blue-700 mb-4"
-        >
-          Autentificare cu Google
-        </button>
 
-        <p className="text-center text-white">
-          Nu ai cont?{' '}
-          <Link href="/register" className="text-blue-400 hover:underline">
-            Înregistrează-te
-          </Link>
-        </p>
+          <p className="text-center text-white text-sm">
+            Nu ai cont?{' '}
+            <Link href="/register" className="text-blue-400 hover:underline">
+              Înregistrează-te
+            </Link>
+          </p>
+        </div>
+
+        {/* RIGHT: Mesaj + vibe */}
+        <div className="hidden md:flex w-1/2 bg-gradient-to-br from-pink-600 via-purple-600 to-indigo-600 text-white flex-col items-center justify-center p-8">
+          <h2 className="text-4xl font-bold mb-4">Bine ai venit!</h2>
+          <p className="text-lg text-center leading-relaxed">
+            Alătură-te comunității Field2Go și rezervă terenuri mai ușor ca niciodată.
+          </p>
+        </div>
       </div>
     </div>
   )

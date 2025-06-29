@@ -94,16 +94,16 @@ export default function MyReservationsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 px-4 py-8">
-      <h1 className="text-3xl font-bold text-white mb-6">Rezervările Mele</h1>
-      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+    <div className="min-h-screen bg-gray-900 px-6 py-10">
+      <h1 className="text-4xl font-bold text-white mb-10">Rezervările Mele</h1>
+
+      <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
         {myRes.map((resv) => {
           const ownerUsername = resv.owner?.username || resv.owner?.email || "—";
           const participantsList = (resv.participants || [])
             .filter((p) => p._id !== resv.owner?._id)
             .map((p) => p.username || p.email);
 
-          // Formatare data/oră
           const [Y, M, D] = resv.date.split("-").map((x) => parseInt(x, 10));
           const [h, m] = resv.startTime.split(":").map((x) => parseInt(x, 10));
           const dt = new Date(Y, M - 1, D, h, m, 0);
@@ -112,41 +112,38 @@ export default function MyReservationsPage() {
             month: "2-digit",
             year: "numeric",
           });
-          const timeStr = resv.startTime; // ex: "14:00"
+          const timeStr = resv.startTime;
 
           return (
             <div
               key={resv._id}
-              className="bg-gray-800 rounded-2xl shadow-lg overflow-hidden hover:shadow-2xl transition-shadow"
+              className="bg-gray-800 rounded-2xl shadow-md hover:shadow-xl transition-all flex flex-col justify-between"
             >
-              <div className="p-6">
-                <h2 className="text-2xl font-semibold text-pink-500 mb-2">
-                  {resv.field?.name || "—"}
-                </h2>
-                <p className="text-gray-300 text-sm">
-                  <span className="font-medium">Data:</span> {dateStr} {" | "}
-                  <span className="font-medium">Ora:</span> {timeStr}
+              <div className="p-6 space-y-2">
+                <h2 className="text-xl font-bold text-violet-400 mb-2">{resv.field?.name || "—"}</h2>
+
+                <p className="text-sm text-gray-300">
+                  <span className="font-medium text-white">Data:</span> {dateStr} | <span className="font-medium text-white">Ora:</span> {timeStr}
                 </p>
-                <p className="text-gray-300 text-sm mt-1">
-                  <span className="font-medium">Durată:</span> {resv.duration} ore
+                <p className="text-sm text-gray-300">
+                  <span className="font-medium text-white">Durată:</span> {resv.duration} ore
                 </p>
-                <p className="text-gray-300 text-sm mt-1">
-                  <span className="font-medium">Publică:</span> {resv.isPublic ? "Da" : "Nu"}
+                <p className="text-sm text-gray-300">
+                  <span className="font-medium text-white">Publică:</span> {resv.isPublic ? "Da" : "Nu"}
                 </p>
-                <p className="text-gray-300 text-sm mt-1">
-                  <span className="font-medium">Organizator:</span> {ownerUsername}
+                <p className="text-sm text-gray-300">
+                  <span className="font-medium text-white">Organizator:</span> {ownerUsername}
                 </p>
-                <p className="text-gray-300 text-sm mt-1">
-                  <span className="font-medium">Participanți:</span>{" "}
-                  {participantsList.length > 0
-                    ? participantsList.join(", ")
-                    : "Doar owner-ul"}
+                <p className="text-sm text-gray-300">
+                  <span className="font-medium text-white">Participanți:</span>{" "}
+                  {participantsList.length > 0 ? participantsList.join(", ") : "Doar owner-ul"}
                 </p>
               </div>
+
               <div className="bg-gray-700 px-6 py-4 flex justify-end">
                 <Link
                   href={`/reservations/${resv._id}`}
-                  className="bg-pink-600 hover:bg-pink-700 text-white font-semibold py-2 px-4 rounded-lg transition"
+                  className="bg-gradient-to-r from-purple-600 to-violet-500 hover:brightness-110 text-white font-semibold py-2 px-4 rounded-lg transition"
                 >
                   Detalii & Chat
                 </Link>
@@ -157,4 +154,5 @@ export default function MyReservationsPage() {
       </div>
     </div>
   );
+
 }

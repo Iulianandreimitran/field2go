@@ -10,7 +10,6 @@ export default function ChatbotWidget() {
 
   const toggleChat = () => {
     if (!isOpen && messages.length === 0) {
-      // la prima deschidere adaug mesajul de bun venit
       setMessages([{ sender: "bot", text: "Bine ați venit! Cu ce pot să vă ajut?" }]);
     }
     setIsOpen((o) => !o);
@@ -18,10 +17,8 @@ export default function ChatbotWidget() {
 
   const handleSend = async (userText) => {
     if (!userText.trim()) return;
-    // adaug mesajul utilizator
     setMessages((m) => [...m, { sender: "user", text: userText }]);
 
-    // obțin răspunsul bot-ului
     const botReply = await getBotReply(userText);
     setMessages((m) => [...m, botReply]);
   };
@@ -34,11 +31,10 @@ export default function ChatbotWidget() {
   );
 }
 
-// logica de interpretare
+
 async function getBotReply(userQuestion) {
   const q = userQuestion.toLowerCase();
 
-  // 1) Estimare cost: „X ore la Y RON/oră”
   const costPattern = /(\d+)\s*ore.*?(\d+)\s*ron\/or\u0103/i;
   const costMatch = q.match(costPattern);
   if (costMatch) {
@@ -52,7 +48,6 @@ async function getBotReply(userQuestion) {
     };
   }
 
-  // 2) Cum se face rezervarea
   if (q.includes("rezervare")) {
     return {
       sender: "bot",
@@ -61,7 +56,6 @@ async function getBotReply(userQuestion) {
     };
   }
 
-  // 3) Despre sistemul de plată
   const payPattern = /(plat[ăa]|cost|preț|tarif)/i;
   if (payPattern.test(q)) {
     return {
@@ -71,7 +65,6 @@ async function getBotReply(userQuestion) {
     };
   }
 
-  // 4) Terenuri libere azi
   if (q.includes("teren") && (q.includes("liber") || q.includes("disponibil"))) {
     try {
       const res = await fetch("/api/fields/available?date=today", { credentials: "include" });
@@ -87,7 +80,6 @@ async function getBotReply(userQuestion) {
     }
   }
 
-  // 5) Recomandare teren fotbal
   if (q.includes("recomand") && q.includes("fotbal")) {
     try {
       const res = await fetch("/api/fields/recommend?type=fotbal", { credentials: "include" });
@@ -102,7 +94,6 @@ async function getBotReply(userQuestion) {
     }
   }
 
-  // fallback
   return {
     sender: "bot",
     text:

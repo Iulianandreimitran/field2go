@@ -3,46 +3,61 @@
 import { useSession } from "next-auth/react";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 
 export default function ProfilePage() {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const router = useRouter();
 
   const [loading, setLoading] = useState(true);
   const [editable, setEditable] = useState(false);
   const [message, setMessage] = useState("");
 
-  // câmpuri de formular
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [bio, setBio] = useState("");
+  const [avatar, setAvatar] = useState("");
+
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-
-  // fișier avatar + preview
   const [avatarFile, setAvatarFile] = useState(null);
   const [avatarPreview, setAvatarPreview] = useState("");
 
-  // toggles show/hide parole
   const [showCurrent, setShowCurrent] = useState(false);
   const [showNew, setShowNew] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
 
-  // inițializare din sesiune
   useEffect(() => {
-    if (session) {
-      setUsername(session.user.name || "");
-      setEmail(session.user.email || "");
-      setBio(session.user.bio || "");
-      setAvatarPreview(session.user.image || "");
-    } else {
-      router.push("/login");
-    }
-    setLoading(false);
-  }, [session, router]);
+    if (status === "loading") return;
 
-  // când user alege un fișier, facem preview
+    if (!session?.user) {
+      router.push("/login");
+      return;
+    }
+
+    loadUserData();
+  }, [session, status]);
+
+  const loadUserData = async () => {
+    try {
+      const res = await fetch(`/api/users/${session.user.id}`);
+      const data = await res.json();
+
+      if (res.ok) {
+        setUsername(data.username);
+        setEmail(data.email);
+        setBio(data.bio || "");
+        setAvatar(data.avatar || "");
+        setAvatarPreview(data.avatar || "");
+      }
+    } catch (err) {
+      console.error("Eroare la încărcarea datelor:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   function onAvatarChange(e) {
     const file = e.target.files[0];
     if (file && file.type.startsWith("image/")) {
@@ -51,28 +66,16 @@ export default function ProfilePage() {
     }
   }
 
-  // trimite update la profil
   async function updateProfile(e) {
     e.preventDefault();
     setMessage("");
 
-    // validare parole
     if (newPassword) {
-      if (!currentPassword) {
-        setMessage("Parola actuală este necesară.");
-        return;
-      }
-      if (newPassword !== confirmPassword) {
-        setMessage("Parolele noi nu se potrivesc.");
-        return;
-      }
-      if (newPassword.length < 6) {
-        setMessage("Parola nouă trebuie să aibă cel puțin 6 caractere.");
-        return;
-      }
+      if (!currentPassword) return setMessage("Parola actuală este necesară.");
+      if (newPassword !== confirmPassword) return setMessage("Parolele noi nu se potrivesc.");
+      if (newPassword.length < 6) return setMessage("Parola nouă trebuie să aibă cel puțin 6 caractere.");
     }
 
-    // construim FormData
     const formData = new FormData();
     formData.append("username", username);
     formData.append("email", email);
@@ -83,10 +86,10 @@ export default function ProfilePage() {
       formData.append("newPassword", newPassword);
     }
 
-    const res = await fetch("/profile/update", {
+    const res = await fetch(`/api/users/${session.user.id}/update`, {
       method: "PATCH",
-      credentials: "include",
       body: formData,
+      credentials: "include",
     });
     const data = await res.json();
 
@@ -96,176 +99,143 @@ export default function ProfilePage() {
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
-      // aici poți actualiza contextul/session dacă ai nevoie
+
+      window.dispatchEvent(new CustomEvent("username-updated", {
+        detail: { newName: username }
+      }));
+
+      loadUserData();
     } else {
       setMessage(data.msg || data.error || "Eroare la actualizarea profilului.");
     }
   }
 
-  if (loading) return <p>Loading…</p>;
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center">
+        <p>Se încarcă...</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white flex flex-col items-center py-16">
-      <h1 className="text-3xl font-bold mb-6">Profilul Meu</h1>
-      {message && <p className="mb-4 text-green-400">{message}</p>}
+    <div className="min-h-screen bg-gray-900 text-white flex flex-col items-center py-16 px-4">
+      
+      <h1 className="text-3xl font-bold mb-8">Profilul meu</h1>
 
-      <div className="bg-gray-800 p-8 rounded-xl shadow-md w-full max-w-md">
-        {editable ? (
-          <form onSubmit={updateProfile} className="space-y-6">
-            {/* ==== Upload avatar stilizat ==== */}
-            <label className="flex flex-col items-center cursor-pointer mb-4">
-              {/* buton vizibil */}
-              <div className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded">
+      <div className={`w-full max-w-sm bg-gray-800 rounded-2xl shadow-xl p-6 flex flex-col items-center justify-start ${editable ? "min-h-[500px]" : "min-h-[350px]"}`}>
+
+        {avatarPreview ? (
+          <Image
+            src={avatarPreview}
+            alt="Avatar"
+            width={100}
+            height={100}
+            className="rounded-full mb-4 object-cover border-4 border-purple-500"
+          />
+        ) : (
+          <div className="w-24 h-24 bg-gray-700 rounded-full mb-4" />
+        )}
+
+        {!editable ? (
+          <>
+            <h1 className="text-2xl font-bold mb-4">{username}</h1>
+
+            <p className="mb-2">
+              <span className="font-semibold">Email:</span> {email}
+            </p>
+            <p className="mb-4 text-center">
+              <span className="font-semibold">Bio:</span> {bio || "–"}
+            </p>
+
+            <button
+              onClick={() => setEditable(true)}
+              className="px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded hover:brightness-110"
+            >
+              Editează profil
+            </button>
+          </>
+        ) : (
+          <form onSubmit={updateProfile} className="w-full mt-4 space-y-6">
+            {message && <p className="text-green-400 font-medium">{message}</p>}
+
+            <label className="flex flex-col items-center cursor-pointer">
+              <div className="bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold px-4 py-2 rounded hover:brightness-110 transition">
                 {avatarPreview ? "Schimbă avatar" : "Încarcă avatar"}
               </div>
-              {/* input real ascuns */}
-              <input
-                type="file"
-                accept="image/*"
-                onChange={onAvatarChange}
-                className="hidden"
-              />
-              {/* preview */}
+              <input type="file" accept="image/*" onChange={onAvatarChange} className="hidden" />
               {avatarPreview && (
-                <img
-                  src={avatarPreview}
-                  alt="Avatar preview"
-                  className="h-24 w-24 rounded-full mt-2 object-cover"
-                />
+                <img src={avatarPreview} alt="Avatar preview" className="h-24 w-24 rounded-full mt-3 object-cover shadow" />
               )}
             </label>
 
-            {/* Username */}
             <div>
-              <label className="block mb-1">Nume:</label>
+              <label className="block mb-1 font-medium">Nume</label>
               <input
                 type="text"
-                className="w-full rounded px-3 py-2 text-gray-900"
+                className="w-full bg-gray-700 text-white px-4 py-2 rounded"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
               />
             </div>
 
-            {/* Email */}
             <div>
-              <label className="block mb-1">Email:</label>
+              <label className="block mb-1 font-medium">Email</label>
               <input
                 type="email"
-                className="w-full rounded px-3 py-2 text-gray-900"
+                className="w-full bg-gray-700 text-white px-4 py-2 rounded"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />
             </div>
 
-            {/* Bio */}
             <div>
-              <label className="block mb-1">Bio (scurtă):</label>
+              <label className="block mb-1 font-medium">Bio (scurtă)</label>
               <textarea
-                className="w-full rounded px-3 py-2 text-gray-900"
+                className="w-full bg-gray-700 text-white px-4 py-2 rounded"
                 rows={3}
                 value={bio}
                 onChange={(e) => setBio(e.target.value)}
               />
             </div>
 
-            {/* Parola actuală */}
-            <div className="relative">
-              <label className="block mb-1">Parola actuală:</label>
-              <input
-                type={showCurrent ? "text" : "password"}
-                className="w-full rounded px-3 py-2 text-gray-900 pr-10"
-                value={currentPassword}
-                onChange={(e) => setCurrentPassword(e.target.value)}
-              />
-              <button
-                type="button"
-                onClick={() => setShowCurrent((v) => !v)}
-                className="absolute top-9 right-3 text-gray-600"
-              >
-                {showCurrent ? "🙈" : "👁️"}
-              </button>
-            </div>
+            {[{ label: "Parola actuală", value: currentPassword, setter: setCurrentPassword, visible: showCurrent, toggle: () => setShowCurrent(!showCurrent) },
+              { label: "Parolă nouă", value: newPassword, setter: setNewPassword, visible: showNew, toggle: () => setShowNew(!showNew) },
+              { label: "Confirmă parola nouă", value: confirmPassword, setter: setConfirmPassword, visible: showConfirm, toggle: () => setShowConfirm(!showConfirm) }
+            ].map((field, i) => (
+              <div key={i} className="relative">
+                <label className="block mb-1 font-medium">{field.label}</label>
+                <input
+                  type={field.visible ? "text" : "password"}
+                  value={field.value}
+                  onChange={(e) => field.setter(e.target.value)}
+                  className="w-full bg-gray-700 text-white px-4 py-2 rounded pr-10"
+                />
+                <button type="button" onClick={field.toggle} className="absolute top-9 right-3 text-gray-300 text-sm">
+                  {field.visible ? "🙈" : "👁️"}
+                </button>
+              </div>
+            ))}
 
-            {/* Parolă nouă */}
-            <div className="relative">
-              <label className="block mb-1">Parolă nouă:</label>
-              <input
-                type={showNew ? "text" : "password"}
-                className="w-full rounded px-3 py-2 text-gray-900 pr-10"
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-              />
+            <div className="flex justify-end space-x-3 pt-4">
               <button
                 type="button"
-                onClick={() => setShowNew((v) => !v)}
-                className="absolute top-9 right-3 text-gray-600"
-              >
-                {showNew ? "🙈" : "👁️"}
-              </button>
-            </div>
-
-            {/* Confirmă parola nouă */}
-            <div className="relative">
-              <label className="block mb-1">Confirmă parola nouă:</label>
-              <input
-                type={showConfirm ? "text" : "password"}
-                className="w-full rounded px-3 py-2 text-gray-900 pr-10"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-              />
-              <button
-                type="button"
-                onClick={() => setShowConfirm((v) => !v)}
-                className="absolute top-9 right-3 text-gray-600"
-              >
-                {showConfirm ? "🙈" : "👁️"}
-              </button>
-            </div>
-
-            {/* butoane */}
-            <div className="flex justify-end space-x-2">
-              <button
-                type="button"
-                className="px-4 py-2 bg-gray-600 rounded hover:bg-gray-700"
                 onClick={() => setEditable(false)}
+                className="px-4 py-2 bg-gray-600 rounded hover:bg-gray-700"
               >
                 Renunță
               </button>
               <button
                 type="submit"
-                className="px-4 py-2 bg-blue-600 rounded hover:bg-blue-700"
+                className="px-4 py-2 bg-gradient-to-r from-pink-500 to-pink-700 text-white rounded hover:brightness-110"
               >
                 Salvează
               </button>
             </div>
           </form>
-        ) : (
-          <div className="text-center space-y-4">
-            {avatarPreview && (
-              <img
-                src={avatarPreview}
-                alt="Avatar"
-                className="h-24 w-24 rounded-full mx-auto mb-2 object-cover"
-              />
-            )}
-            <p>
-              <strong>Nume:</strong> {username}
-            </p>
-            <p>
-              <strong>Email:</strong> {email}
-            </p>
-            <p>
-              <strong>Bio:</strong> {bio || "–"}
-            </p>
-            <button
-              className="mt-4 px-4 py-2 bg-blue-600 rounded hover:bg-blue-700"
-              onClick={() => setEditable(true)}
-            >
-              Editează profil
-            </button>
-          </div>
         )}
       </div>
     </div>
   );
+
 }

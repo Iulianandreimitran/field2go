@@ -1,4 +1,3 @@
-// src/components/Header.jsx
 "use client";
 
 import { useSession, signOut } from "next-auth/react";
@@ -15,14 +14,31 @@ export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
-    // Fallback pentru nume dacă sesiunea nu e încă gata
-    setLocalUsername(
-      session?.user?.name || session?.user?.email || localStorage.getItem("username") || ""
-    );
-  }, [session]);
+    if (!localUsername) {
+      if (session?.user?.name) {
+        setLocalUsername(session.user.name);
+      } else if (session?.user?.email) {
+        setLocalUsername(session.user.email);
+      }
+    }
+
+    const handleUsernameUpdate = (e) => {
+      if (e.detail?.newName) {
+        setLocalUsername(e.detail.newName);
+      }
+    };
+
+    window.addEventListener("username-updated", handleUsernameUpdate);
+
+    return () => {
+      window.removeEventListener("username-updated", handleUsernameUpdate);
+    };
+  }, [session, localUsername]);
+
+
 
   const displayName =
-    session?.user?.name || session?.user?.email || localUsername || "Log in";
+    localUsername || "Log in";
 
   const userRole = session?.user?.role || "user";
 
@@ -63,37 +79,44 @@ export default function Header() {
   }
 
   return (
-    <header className="bg-gray-900 text-white py-2 px-4 flex items-center justify-between relative">
+    <header className="bg-gray-900 text-white py-3 px-4 flex items-center justify-between relative shadow-md">
       {/* Butoane stânga */}
-      <div className="flex items-center space-x-2">
+      <div className="flex items-center gap-3">
         <button
           onClick={handleFieldsClick}
-          className="bg-pink-600 text-white px-3 py-1 rounded hover:bg-pink-700"
+          className="bg-gradient-to-r from-pink-600 to-pink-500 hover:brightness-110 text-white px-4 py-1.5 rounded-lg font-semibold transition"
         >
           Vezi Terenuri
         </button>
-        <button
-          onClick={handleExploreClick}
-          className="bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700"
-        >
-          Rezervări Publice
-        </button>
+
+        {userRole !== "admin" && (
+          <button
+            onClick={handleExploreClick}
+            className="bg-gradient-to-r from-blue-600 to-blue-500 hover:brightness-110 text-white px-4 py-1.5 rounded-lg font-semibold transition"
+          >
+            Rezervări Publice
+          </button>
+        )}
       </div>
 
-      {/* SearchBar dacă e autentificat */}
-      <div className="flex-1 mx-4">
-        {status === "authenticated" && <SearchBar />}
+      {/* SearchBar dacă e autentificat și nu e admin */}
+      <div className="flex-1 mx-6">
+        {status === "authenticated" && userRole !== "admin" && <SearchBar />}
       </div>
 
       {/* Salut și meniul dropdown */}
-      <div className="relative flex items-center space-x-4">
-        <div onClick={handleHeaderClick} className="cursor-pointer">
-          <span>{`Salut, ${displayName}`}</span>
+      <div className="relative flex items-center gap-4">
+        <div
+          onClick={handleHeaderClick}
+          className="cursor-pointer hover:underline font-medium"
+        >
+          {`Salut, ${displayName}`}
         </div>
+
         {status === "authenticated" && <NotificationBell />}
 
         {menuOpen && (
-          <div className="absolute top-full right-0 mt-2 bg-gray-800 rounded shadow-md text-white w-48 z-20">
+          <div className="absolute top-full right-0 mt-2 bg-gray-800 rounded-xl shadow-lg text-white w-52 z-50 overflow-hidden border border-gray-700">
             <ul className="py-2">
               {userRole !== "admin" && (
                 <li
@@ -103,6 +126,7 @@ export default function Header() {
                   Profil
                 </li>
               )}
+
               {userRole === "admin" ? (
                 <li
                   className="px-4 py-2 hover:bg-gray-700 cursor-pointer"
@@ -143,4 +167,3 @@ export default function Header() {
     </header>
   );
 }
-

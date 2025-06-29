@@ -7,7 +7,6 @@ export async function GET() {
   try {
     await dbConnect();
 
-    // Șterge ownerii din toate terenurile
     const result = await Field.updateMany({}, { $unset: { owner: "" } });
 
     return NextResponse.json({

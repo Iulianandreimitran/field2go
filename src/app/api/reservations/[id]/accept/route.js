@@ -26,15 +26,12 @@ export async function POST(request, { params }) {
     if (!reservation.isPublic) {
       return NextResponse.json({ error: "No invitation for this user" }, { status: 400 });
     }
-    // Dacă e publică, nu e nevoie să fie în invites; permit join direct
   }
 
-  // Dacă user-ul era invitat, îl scoatem din invites
   if (inviteIndex !== -1) {
     reservation.invites.splice(inviteIndex, 1);
   }
 
-  // Adaugă user-ul la participanți (dacă nu e deja)
   const alreadyParticipant = reservation.participants.some(
     (uid) => uid.toString() === currentUserId
   );

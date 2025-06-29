@@ -8,7 +8,8 @@ import { getSocketServerInstance } from "@/utils/socketServerInstance";
 
 // === POST /api/reservations/[id]/invite ===
 export async function POST(request, context) {
-  const { id } = context.params;
+  const params = await context.params;
+  const { id } = params;
 
   const session = await getServerSession(authOptions);
   if (!session?.user) {
@@ -65,11 +66,14 @@ export async function POST(request, context) {
   await reservation.save();
 
   // 🔔 Emitere notificare socket
-  const io = global._socketServerInstance?.();
-  if (io) {
-    io.to(invitedUser._id.toString()).emit("invite:new");
-    console.log(`📣 invite:new trimis către ${invitedUser._id}`);
-  }
+  await fetch(`http://localhost:3001/emit-invite`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      receiverId: invitedUser._id.toString()
+    })
+  });
+
 
   return NextResponse.json({ success: true });
 }

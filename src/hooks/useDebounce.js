@@ -12,12 +12,12 @@ export default function useDebounce(value, delay) {
   const [debounced, setDebounced] = useState(value);
 
   useEffect(() => {
-    // La fiecare schimbare a lui `value`, setăm un timeout
+
     const handler = setTimeout(() => {
       setDebounced(value);
     }, delay);
 
-    // Cleanup: dacă `value` se schimbă înainte de expirare, anulăm timeout-ul
+
     return () => {
       clearTimeout(handler);
     };

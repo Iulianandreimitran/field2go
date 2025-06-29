@@ -35,7 +35,7 @@ export default function AddFieldPage() {
       const res = await fetch("/api/fields", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        credentials: "include", // 👈 IMPORTANT pentru sesiune next-auth
+        credentials: "include", 
         body: JSON.stringify({
           name,
           location,

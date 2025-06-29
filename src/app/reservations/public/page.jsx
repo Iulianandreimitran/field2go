@@ -10,7 +10,7 @@ export default function PublicReservationsPage() {
 
   useEffect(() => {
     setLoading(true);
-    fetch('/api/reservations/public')  // API care returnează rezervările publice
+    fetch('/api/reservations/public')  
       .then(res => res.json())
       .then(data => {
         if (data.error) {

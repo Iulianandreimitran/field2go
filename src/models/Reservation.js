@@ -5,12 +5,12 @@ const ReservationSchema = new mongoose.Schema({
   field: { type: mongoose.Schema.Types.ObjectId, ref: 'Field', required: true },
   owner: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   date: { type: Date, required: true },
-  startTime: { type: String, required: true },    // ex: "14:00"
-  duration: { type: Number, required: true },      // durata în ore
+  startTime: { type: String, required: true },    
+  duration: { type: Number, required: true },      
   isPublic: { type: Boolean, default: false },
   status: { type: String, enum: ['pending', 'active', 'completed'], default: 'pending' },
-  participants: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],  // utilizatori care participă (acceptați)
-  invites: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],       // utilizatori invitați (în așteptare)
+  participants: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }], 
+  invites: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],      
   messages: [{
     sender: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     text: String,

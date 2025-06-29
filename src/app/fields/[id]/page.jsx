@@ -15,15 +15,15 @@ export default function ReserveFieldPage() {
   const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState("");
 
-  // Rezervările existente (DEMO)
+
   const [reservations, setReservations] = useState([]);
 
-  // Stări pentru data selectată și ora/durata
-  const [selectedDate, setSelectedDate] = useState("");
-  const [startTime, setStartTime] = useState("");  // ex. "19:00"
-  const [duration, setDuration] = useState("2");   // default 2 ore
 
-  // 1) Preluăm info despre teren
+  const [selectedDate, setSelectedDate] = useState("");
+  const [startTime, setStartTime] = useState("");  
+  const [duration, setDuration] = useState("2");   
+
+
   useEffect(() => {
     async function fetchField() {
       try {
@@ -39,20 +39,20 @@ export default function ReserveFieldPage() {
     if (id) fetchField();
   }, [id]);
 
-  // 2) Preluăm rezervările existente (DEMO)
+
   useEffect(() => {
     const demoReservations = [
-      // Rezervare pentru 2025-06-02, ora 09:00-10:00
+
       {
         startTime: "2025-06-02T09:00:00",
         endTime: "2025-06-02T10:00:00",
       },
-      // Rezervare pentru 2025-06-02, ora 14:00-16:00
+
       {
         startTime: "2025-06-02T14:00:00",
         endTime: "2025-06-02T16:00:00",
       },
-      // Rezervare pentru 2025-06-03, ora 10:00-12:00 (altă zi)
+
       {
         startTime: "2025-06-03T10:00:00",
         endTime: "2025-06-03T12:00:00",
@@ -61,20 +61,19 @@ export default function ReserveFieldPage() {
     setReservations(demoReservations);
   }, []);
 
-  // 3) Funcție care se apelează când dai click pe un slot liber în Timetable
+
   const handleSlotClick = (hour) => {
-    // ex. hour = 19 => "19:00"
+
     const hourString = String(hour).padStart(2, "0");
     setStartTime(`${hourString}:00`);
   };
 
-  // 4) Submit rezervare – modificat pentru a verifica sesiunea sau tokenul manual
-  // ... în src/app/fields/[id]/reserve/page.jsx
+
 const handleReservationSubmit = async (e) => {
   e.preventDefault();
   setMessage("");
 
-  // Verificăm dacă suntem logați (NextAuth sau manual)
+
   const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
   if (!session && !token) {
     router.push("/login");
@@ -90,7 +89,7 @@ const handleReservationSubmit = async (e) => {
     return;
   }
 
-  // Construim datele de început și sfârșit
+
   const [year, month, day] = selectedDate.split("-").map(Number);
   const [hour, minute] = startTime.split(":").map(Number);
   const startDate = new Date(year, month - 1, day, hour, minute, 0);
@@ -117,9 +116,9 @@ const handleReservationSubmit = async (e) => {
     });
     const data = await res.json();
     if (res.ok) {
-      // În loc să actualizăm timetable-ul, redirecționăm către pagina de plată
+
       const newReservation = data.reservation || payload;
-      // Transmite, de exemplu, reservationId prin query string
+
       router.push(`/payment?reservationId=${newReservation._id}`);
     } else {
       setMessage(data.msg || "Rezervare eșuată");

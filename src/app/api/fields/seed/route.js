@@ -6,7 +6,6 @@ import Field from "../../../../models/Field";
 export async function GET() {
   try {
     await dbConnect();
-    // Ștergem terenurile existente pentru a reinițializa DB
     await Field.deleteMany({});
 
     const sampleFields = [

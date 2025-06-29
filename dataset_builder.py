@@ -13,7 +13,7 @@ users = list(db["users"].find())
 fields = list(db["fields"].find())
 reservations = list(db["reservations"].find())
 
-# Indexare rezervări după (userId, fieldId)
+
 reservation_map = {}
 for res in reservations:
     key = (str(res["owner"]), str(res["field"]))
@@ -45,7 +45,7 @@ for user in users:
                     "reserved": 1
                 })
 
-    # Negative
+    
     reserved_field_ids = {fid for (uid, fid) in positive_samples if uid == user_id}
     non_reserved_fields = [f for f in fields if str(f["_id"]) not in reserved_field_ids]
     sampled_negatives = random.sample(non_reserved_fields, min(len(non_reserved_fields), 3))
@@ -57,7 +57,7 @@ for user in users:
             "sportType": field["sportType"],
             "location": field["location"],
             "pricePerHour": field["pricePerHour"],
-            "duration": 0,         # sau None
+            "duration": 0,         
             "date": None,
             "reserved": 0
         })

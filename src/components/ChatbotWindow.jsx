@@ -6,7 +6,6 @@ export default function ChatbotWindow({ messages, onSend }) {
   const [input, setInput] = useState("");
   const scrollRef = useRef();
 
-  // Scroll la ultimul mesaj
   useEffect(() => {
     scrollRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);

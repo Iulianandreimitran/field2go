@@ -7,7 +7,7 @@ import { useEffect, useState } from "react";
 import Timetable from "@/components/Timetable";
 
 export default function ReserveFieldPage() {
-  const { id } = useParams();           // ID-ul terenului extras din URL
+  const { id } = useParams();           
   const router = useRouter();
   const { data: session } = useSession();
 
@@ -15,17 +15,13 @@ export default function ReserveFieldPage() {
   const [loadingField, setLoadingField] = useState(true);
   const [message, setMessage] = useState("");
 
-  // Rezervările existente (vor încărca doar pentru ziua selectată)
   const [reservations, setReservations] = useState([]);
 
-  // Stări pentru data selectată, ora și durata
-  const [selectedDate, setSelectedDate] = useState("");  // ex: "2025-06-21"
-  const [startTime, setStartTime] = useState("");        // ex: "19:00"
-  const [duration, setDuration] = useState("2");         // default 2 ore
+  const [selectedDate, setSelectedDate] = useState("");  
+  const [startTime, setStartTime] = useState("");        
+  const [duration, setDuration] = useState("2");       
 
-  //
-  // 1) Preluăm informații despre teren din API-ul /api/fields/[id]
-  //
+
   useEffect(() => {
     async function fetchField() {
       try {
@@ -41,10 +37,7 @@ export default function ReserveFieldPage() {
     if (id) fetchField();
   }, [id]);
 
-  //
-  // 2) De fiecare dată când se schimbă selectedDate, apelăm /api/reservations?field=<id>&date=<selectedDate>
-  //    și populăm `reservations` cu rezervările existente pe acel teren/zi.
-  //
+
   useEffect(() => {
     async function loadReservations() {
       if (!id || !selectedDate) {
@@ -66,29 +59,21 @@ export default function ReserveFieldPage() {
     loadReservations();
   }, [id, selectedDate]);
 
-  //
-  // 3) Când dai click pe un slot liber din Timetable, apelăm onSlotClick și setăm `startTime`
-  //
   const handleSlotClick = (hour) => {
     const hourString = String(hour).padStart(2, "0");
     setStartTime(`${hourString}:00`);
   };
 
-  //
-  // 4) La submit-ul formularului de rezervare, trimitem un POST către /api/reservations
-  //    pentru a crea o nouă rezervare cu status="pending". Apoi redirecționăm către pagina de plată.
-  //
+
   const handleReservationSubmit = async (e) => {
     e.preventDefault();
     setMessage("");
 
-    // 4a) Dacă nu ești autentificat, redirecționează la /login
     if (!session) {
       router.push("/login");
       return;
     }
 
-    // 4b) Validări simple
     if (!selectedDate) {
       setMessage("Te rog selectează data.");
       return;
@@ -98,7 +83,6 @@ export default function ReserveFieldPage() {
       return;
     }
 
-    // 4c) Construim payload-ul
     const payload = {
       fieldId:      id,
       reservedDate: selectedDate,
@@ -116,11 +100,9 @@ export default function ReserveFieldPage() {
       const data = await res.json();
 
       if (res.ok && data.reservation) {
-        // 4d) Rezervarea s-a creat cu status = "pending". Preluăm _id-ul și redirecționăm
         const newResId = data.reservation._id;
         router.push(`/payment?reservationId=${newResId}`);
       } else {
-        // 4e) A apărut o eroare (server-side)
         setMessage(data.error || "Rezervare eșuată.");
       }
     } catch (error) {
@@ -129,115 +111,122 @@ export default function ReserveFieldPage() {
     }
   };
 
-  // Dacă încă se încarcă datele terenului
+
   if (loadingField) {
     return <p className="p-4 text-white">Se încarcă datele terenului...</p>;
   }
-  // Dacă nu s-a găsit terenul
+
   if (!field) {
     return <p className="p-4 text-white">Terenul nu a fost găsit.</p>;
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white p-4">
+    <div className="min-h-screen bg-gray-900 text-white p-6">
       {/* Buton „Înapoi” */}
       <button
         onClick={() => router.back()}
-        className="mb-4 bg-blue-600 px-3 py-1 rounded hover:bg-blue-700"
+        className="mb-6 text-sm bg-gradient-to-r from-blue-600 to-purple-600 text-white px-4 py-1.5 rounded hover:brightness-110 transition"
       >
-        Înapoi
+        ← Înapoi
       </button>
 
-      <div className="max-w-4xl mx-auto bg-gray-800 p-6 rounded shadow">
-        {/* Imagine teren (dacă există) */}
+      <div className="max-w-4xl mx-auto bg-gray-800 rounded-xl shadow-lg overflow-hidden">
+        {/* Imagine teren */}
         {field.images && field.images.length > 0 && (
           <img
             src={field.images[0]}
             alt={field.name}
-            className="w-full h-64 object-cover rounded mb-4"
+            className="w-full h-64 object-cover"
           />
         )}
 
-        {/* Nume, preț, adresă */}
-        <h1 className="text-3xl font-bold mb-2">{field.name}</h1>
-        <p className="mb-2">
-          <strong>Preț:</strong> {field.pricePerHour} lei/oră
-        </p>
-        <p className="mb-4">
-          <strong>Adresă:</strong> {field.location}
-        </p>
+        <div className="p-6">
+          {/* Info teren */}
+          <h1 className="text-3xl font-bold mb-2">{field.name}</h1>
+          <p className="text-sm mb-1">
+            <span className="font-semibold text-gray-300">Preț:</span>{" "}
+            {field.pricePerHour} lei/oră
+          </p>
+          <p className="text-sm mb-6">
+            <span className="font-semibold text-gray-300">Adresă:</span>{" "}
+            {field.location}
+          </p>
 
-        {/* Select data */}
-        <div className="mb-6">
-          <label className="block font-semibold mb-1">Alege data:</label>
-          <input
-            type="date"
-            value={selectedDate}
-            onChange={(e) => {
-              setSelectedDate(e.target.value);
-              setStartTime(""); // resetăm ora dacă se schimbă data
-            }}
-            className="p-2 text-black rounded"
-          />
-        </div>
-
-        {/* Timetable (apare doar dacă selectedDate nu e gol) */}
-        {selectedDate && (
-          <>
-            <h2 className="text-2xl font-semibold mt-2 mb-4">
-              Orarul Terenului pentru {selectedDate}
-            </h2>
-            <Timetable
-              fieldId={id}
-              date={selectedDate}
-              startHour={8}
-              endHour={22}
-              onSlotClick={handleSlotClick}
-            />
-          </>
-        )}
-
-        {/* Formular rezervare */}
-        <h2 className="text-2xl font-semibold mt-6 mb-4">Rezervă acest teren</h2>
-        {message && <p className="mb-4 text-green-400">{message}</p>}
-
-        <form onSubmit={handleReservationSubmit} className="space-y-4">
-          <div>
-            <label className="block mb-1 font-semibold">Ora de start:</label>
+          {/* Selectare dată */}
+          <div className="mb-6">
+            <label className="block mb-1 font-medium text-white">Alege data:</label>
             <input
-              type="text"
-              value={startTime}
-              onChange={(e) => setStartTime(e.target.value)}
-              className="w-full p-2 text-black rounded"
-              placeholder="Ex: 16:00"
-              readOnly
+              type="date"
+              value={selectedDate}
+              onChange={(e) => {
+                setSelectedDate(e.target.value);
+                setStartTime("");
+              }}
+              className="w-full px-3 py-2 rounded-lg bg-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-pink-500"
             />
-            <p className="text-sm text-gray-400">
-              (Dă click pe un slot verde din orar pentru a seta ora de start)
-            </p>
           </div>
 
-          <div>
-            <label className="block mb-1 font-semibold">Durată (ore):</label>
-            <select
-              value={duration}
-              onChange={(e) => setDuration(e.target.value)}
-              className="w-full p-2 text-black rounded"
+          {/* Orar dacă avem o zi selectată */}
+          {selectedDate && (
+            <>
+              <h2 className="text-xl font-semibold mt-8 mb-3">
+                Orarul pentru <span className="text-pink-400">{selectedDate}</span>
+              </h2>
+              <Timetable
+                fieldId={id}
+                date={selectedDate}
+                startHour={8}
+                endHour={22}
+                onSlotClick={handleSlotClick}
+              />
+            </>
+          )}
+
+          {/* Form rezervare */}
+          <h2 className="text-xl font-semibold mt-10 mb-4">Rezervă acest teren</h2>
+          {message && <p className="mb-4 text-green-400 font-medium">{message}</p>}
+
+          <form onSubmit={handleReservationSubmit} className="space-y-6">
+            {/* Ora de start */}
+            <div>
+              <label className="block mb-1 font-medium text-white">Ora de start:</label>
+              <input
+                type="text"
+                value={startTime}
+                readOnly
+                onChange={(e) => setStartTime(e.target.value)}
+                className="w-full px-3 py-2 rounded-lg bg-gray-700 text-white placeholder-gray-400"
+                placeholder="Ex: 16:00"
+              />
+              <p className="text-sm text-gray-400 mt-1">
+                (Click pe un slot disponibil din orar pentru a seta ora de start)
+              </p>
+            </div>
+
+            {/* Durată */}
+            <div>
+              <label className="block mb-1 font-medium text-white">Durată (ore):</label>
+              <select
+                value={duration}
+                onChange={(e) => setDuration(e.target.value)}
+                className="w-full px-3 py-2 rounded-lg bg-gray-700 text-white"
+              >
+                <option value="1">1 oră</option>
+                <option value="2">2 ore</option>
+                <option value="3">3 ore</option>
+              </select>
+            </div>
+
+            <button
+              type="submit"
+              className="w-full bg-gradient-to-r from-pink-500 to-pink-700 hover:brightness-110 text-white py-2 rounded-lg font-semibold shadow-md transition"
             >
-              <option value="1">1 oră</option>
-              <option value="2">2 ore</option>
-              <option value="3">3 ore</option>
-            </select>
-          </div>
-
-          <button
-            type="submit"
-            className="bg-pink-600 px-4 py-2 rounded hover:bg-pink-700"
-          >
-            Rezervă
-          </button>
-        </form>
+              Rezervă
+            </button>
+          </form>
+        </div>
       </div>
     </div>
   );
+
 }

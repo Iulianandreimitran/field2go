@@ -21,7 +21,7 @@ export default async function ChatFriendPage({ params }) {
     ]
   })
     .sort({ createdAt: 1 })
-    .populate('sender', 'username email') // ← cheia magică
+    .populate('sender', 'username email') 
     .lean();
 
   const initialMessages = messages.map(msg => ({

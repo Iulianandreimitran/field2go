@@ -7,7 +7,7 @@ import { useSession } from "next-auth/react";
 
 export default function FieldDetailsPage() {
   const { data: session } = useSession();
-  const { id } = useParams(); // ✅ corect
+  const { id } = useParams();
   const [reservations, setReservations] = useState([]);
   const [field, setField] = useState(null);
   const [error, setError] = useState("");
@@ -42,21 +42,36 @@ export default function FieldDetailsPage() {
   if (error) return <div className="text-red-400 p-6">{error}</div>;
 
   return (
-    <div className="p-6 text-white">
-      <h1 className="text-3xl font-bold mb-4">
-        Rezervări pentru: {field?.name || "Teren"}
+    <div className="min-h-screen bg-gray-900 text-white px-6 py-10">
+      <h1 className="text-3xl font-bold mb-8">
+        Rezervări pentru: <span className="text-purple-400">{field?.name || "Teren"}</span>
       </h1>
 
-      <section className="mb-6">
-        <h2 className="text-xl font-semibold mb-2">Rezervări viitoare</h2>
+      <section className="mb-10">
+        <h2 className="text-2xl font-semibold mb-4 text-green-400">Rezervări viitoare</h2>
         {future.length === 0 ? (
-          <p>Nu sunt rezervări viitoare.</p>
+          <p className="text-gray-400">Nu sunt rezervări viitoare.</p>
         ) : (
-          <ul className="space-y-2">
+          <ul className="space-y-3">
             {future.map((res) => (
-              <li key={res._id} className="bg-green-900 p-3 rounded">
-                {new Date(res.date).toLocaleString()} ·{" "}
-                {res.owner?.username || "N/A"} ({res.owner?.email || "N/A"})
+              <li
+                key={res._id}
+                className="bg-gradient-to-r from-emerald-700 to-green-800 p-4 rounded-xl shadow flex flex-col sm:flex-row sm:justify-between sm:items-center"
+              >
+                <div>
+                  <p className="text-sm text-white font-medium">
+                    {new Date(res.date).toLocaleString("ro-RO", {
+                      dateStyle: "short",
+                      timeStyle: "short",
+                    })}
+                  </p>
+                  <p className="text-sm text-gray-300">
+                    {res.owner?.username || "N/A"} <span className="text-xs text-gray-400">({res.owner?.email})</span>
+                  </p>
+                </div>
+                <span className="mt-2 sm:mt-0 inline-block bg-green-600 text-white text-xs font-semibold px-3 py-1 rounded-full">
+                  viitor
+                </span>
               </li>
             ))}
           </ul>
@@ -64,15 +79,30 @@ export default function FieldDetailsPage() {
       </section>
 
       <section>
-        <h2 className="text-xl font-semibold mb-2">Istoric rezervări</h2>
+        <h2 className="text-2xl font-semibold mb-4 text-blue-400">Istoric rezervări</h2>
         {past.length === 0 ? (
-          <p>Nu există rezervări anterioare.</p>
+          <p className="text-gray-400">Nu există rezervări anterioare.</p>
         ) : (
-          <ul className="space-y-2">
+          <ul className="space-y-3">
             {past.map((res) => (
-              <li key={res._id} className="bg-gray-800 p-3 rounded">
-                {new Date(res.date).toLocaleString()} ·{" "}
-                {res.owner?.username || "N/A"} ({res.owner?.email || "N/A"})
+              <li
+                key={res._id}
+                className="bg-gray-800 p-4 rounded-xl shadow flex flex-col sm:flex-row sm:justify-between sm:items-center"
+              >
+                <div>
+                  <p className="text-sm font-medium">
+                    {new Date(res.date).toLocaleString("ro-RO", {
+                      dateStyle: "short",
+                      timeStyle: "short",
+                    })}
+                  </p>
+                  <p className="text-sm text-gray-300">
+                    {res.owner?.username || "N/A"} <span className="text-xs text-gray-400">({res.owner?.email})</span>
+                  </p>
+                </div>
+                <span className="mt-2 sm:mt-0 inline-block bg-gray-600 text-white text-xs font-semibold px-3 py-1 rounded-full">
+                  istoric
+                </span>
               </li>
             ))}
           </ul>
@@ -80,4 +110,5 @@ export default function FieldDetailsPage() {
       </section>
     </div>
   );
+
 }

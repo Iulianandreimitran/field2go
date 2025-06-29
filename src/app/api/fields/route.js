@@ -4,7 +4,6 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import dbConnect from "@/utils/dbConnect";
 import Field from "@/models/Field";
 
-// GET /api/fields – returnează toate terenurile (public)
 export async function GET() {
   try {
     await dbConnect();
@@ -19,7 +18,6 @@ export async function GET() {
   }
 }
 
-// POST /api/fields – adaugă un teren (doar pentru admini autentificați)
 export async function POST(req) {
   await dbConnect();
 

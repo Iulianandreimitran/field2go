@@ -4,7 +4,7 @@
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState, useRef } from "react";
 import { useSession } from "next-auth/react";
-import ChatBox from "@/components/ChatBox";
+import ChatBox from "@/components/Chatbox";
 import io from "socket.io-client";
 
 export default function ReservationDetailsPage() {
@@ -205,104 +205,110 @@ export default function ReservationDetailsPage() {
   if (!reservation) return null;
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white p-8">
-      <h1 className="text-3xl font-bold mb-6">Detalii Rezervare</h1>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        <div className="bg-gray-800 rounded-2xl p-6 shadow space-y-4">
-          <h2 className="text-2xl text-pink-500">{reservation.field?.name || "Teren"}</h2>
-          <p><strong>Data:</strong> {dateStr}</p>
-          <p><strong>Ora:</strong> {timeStr}</p>
-          <p><strong>Durată:</strong> {reservation.duration} ore</p>
-          <p><strong>Organizator:</strong> {reservation.owner?.username || "—"}</p>
+  <div className="min-h-screen bg-gray-900 text-white p-8">
+    <h1 className="text-3xl font-bold mb-6">Detalii Rezervare</h1>
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+      {/* Secțiune info rezervare */}
+      <div className="bg-gray-800 rounded-2xl p-6 shadow space-y-4">
+        <h2 className="text-2xl font-semibold text-purple-400">{reservation.field?.name || "Teren"}</h2>
+        <p className="text-sm"><strong>Data:</strong> {dateStr}</p>
+        <p className="text-sm"><strong>Ora:</strong> {timeStr}</p>
+        <p className="text-sm"><strong>Durată:</strong> {reservation.duration} ore</p>
+        <p className="text-sm"><strong>Organizator:</strong> {reservation.owner?.username || "—"}</p>
 
-          {isOwner && (
-            <label className="inline-flex items-center">
-              <input type="checkbox" checked={reservation.isPublic} onChange={handleTogglePublic} className="mr-2" />
-              Publică rezervarea
-            </label>
-          )}
+        {isOwner && (
+          <label className="inline-flex items-center text-sm">
+            <input type="checkbox" checked={reservation.isPublic} onChange={handleTogglePublic} className="mr-2" />
+            Publică rezervarea
+          </label>
+        )}
 
-          <div>
-            <h3 className="font-semibold mb-2">Participanți:</h3>
-            <ul className="list-disc list-inside space-y-1">
-              <li>{reservation.owner?.username || "—"} <span className="text-gray-400">(organizator)</span></li>
-              {participantsList.map((p) => (
-                <li key={p._id} className="flex justify-between">
-                  <span>{p.username || p.email}</span>
-                  {isOwner && (
-                    <button
-                      onClick={() => handleKick(p._id)}
-                      className="text-red-400 hover:text-red-500 text-sm"
-                    >
-                      Kick
-                    </button>
-                  )}
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Invitație – doar pentru owner */}
-          {isOwner && (
-            <div className="mt-4 relative" ref={suggestionsRef}>
-              <label className="block mb-2 font-medium">Invită utilizator</label>
-              <input
-                type="text"
-                value={inviteUsername || searchTerm}
-                onChange={(e) => {
-                  setSearchTerm(e.target.value);
-                  setInviteUsername("");
-                  setShowSuggestions(true);
-                }}
-                onFocus={() => setShowSuggestions(true)}
-                placeholder="Scrie numele utilizatorului..."
-                className="w-full px-3 py-2 rounded-lg text-gray-900"
-              />
-              {showSuggestions && suggestions.length > 0 && (
-                <ul className="absolute z-10 w-full bg-white text-black rounded-lg mt-1 max-h-48 overflow-y-auto shadow-lg">
-                  {suggestions.map((user) => (
-                    <li
-                      key={user._id}
-                      onClick={() => {
-                        setInviteUsername(user.username);
-                        setShowSuggestions(false);
-                      }}
-                      className="px-3 py-2 hover:bg-gray-200 cursor-pointer"
-                    >
-                      {user.username} <span className="text-gray-500">({user.email})</span>
-                    </li>
-                  ))}
-                </ul>
-              )}
-              <button
-                onClick={handleInvite}
-                disabled={!inviteUsername}
-                className={`mt-2 w-full ${
-                  inviteUsername ? "bg-blue-600 hover:bg-blue-700" : "bg-gray-500 cursor-not-allowed"
-                } text-white py-2 rounded-lg font-medium transition`}
-              >
-                Invită
-              </button>
-            </div>
-          )}
-
-          {(isOwner || isParticipant) && (
-            <button
-              onClick={handleLeave}
-              className="bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded mt-4"
-            >
-              Părăsește rezervarea
-            </button>
-          )}
+        <div>
+          <h3 className="font-semibold mb-2 text-white">Participanți:</h3>
+          <ul className="list-disc list-inside space-y-1 text-sm text-gray-200">
+            <li>{reservation.owner?.username || "—"} <span className="text-gray-400">(organizator)</span></li>
+            {participantsList.map((p) => (
+              <li key={p._id} className="flex justify-between items-center">
+                <span>{p.username || p.email}</span>
+                {isOwner && (
+                  <button
+                    onClick={() => handleKick(p._id)}
+                    className="text-red-400 hover:text-red-500 text-xs"
+                  >
+                    Kick
+                  </button>
+                )}
+              </li>
+            ))}
+          </ul>
         </div>
 
-        <div className="bg-gray-800 rounded-2xl p-6 shadow h-full flex flex-col">
-          <h3 className="text-xl font-semibold mb-4">Chat rezervare</h3>
-          <div className="flex-1">
-            <ChatBox reservationId={reservationId} initialMessages={initialMessages} />
+        {/* Invitație – doar pentru owner */}
+        {isOwner && (
+          <div className="mt-4 relative" ref={suggestionsRef}>
+            <label className="block mb-2 font-medium text-white text-sm">Invită utilizator</label>
+            <input
+              type="text"
+              value={inviteUsername || searchTerm}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                setInviteUsername("");
+                setShowSuggestions(true);
+              }}
+              onFocus={() => setShowSuggestions(true)}
+              placeholder="Scrie numele utilizatorului..."
+              className="w-full px-3 py-2 rounded-lg bg-gray-700 text-gray-100 placeholder:text-gray-400 placeholder:italic"
+            />
+            {showSuggestions && suggestions.length > 0 && (
+              <ul className="absolute z-10 w-full bg-white text-black rounded-lg mt-1 max-h-48 overflow-y-auto shadow">
+                {suggestions.map((user) => (
+                  <li
+                    key={user._id}
+                    onClick={() => {
+                      setInviteUsername(user.username);
+                      setShowSuggestions(false);
+                    }}
+                    className="px-3 py-2 hover:bg-gray-200 cursor-pointer"
+                  >
+                    {user.username} <span className="text-gray-500">({user.email})</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <button
+              onClick={handleInvite}
+              disabled={!inviteUsername}
+              className={`mt-3 w-full ${
+                inviteUsername
+                  ? "bg-gradient-to-r from-blue-500 to-purple-600 hover:brightness-110"
+                  : "bg-gray-500 cursor-not-allowed"
+              } text-white py-2 rounded-lg font-semibold transition`}
+            >
+              Invită
+            </button>
           </div>
+        )}
+
+        {/* Leave button */}
+        {(isOwner || isParticipant) && (
+          <button
+            onClick={handleLeave}
+            className="mt-6 w-full bg-gradient-to-r from-red-500 to-pink-600 hover:brightness-110 text-white py-2 rounded-lg font-semibold transition"
+          >
+            Părăsește rezervarea
+          </button>
+        )}
+      </div>
+
+      {/* Secțiune Chat */}
+      <div className="bg-gray-800 rounded-2xl p-6 shadow h-full flex flex-col">
+        <h3 className="text-xl font-semibold mb-4">Chat rezervare</h3>
+        <div className="flex-1">
+          <ChatBox reservationId={reservationId} initialMessages={initialMessages} />
         </div>
       </div>
     </div>
-  );
+  </div>
+);
+
 }

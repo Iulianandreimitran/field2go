@@ -14,13 +14,11 @@ export default function FriendList({ initialFriends }) {
         method: "DELETE",
       });
       if (!res.ok) {
-        // Aici prindem răspunsul 400 și îl logăm în detaliu
         const errData = await res.json();
         console.error("Eroare la ștergerea prietenului, server a răspuns:", errData);
         return;
       }
 
-      // Dacă răspunsul este ok, scoatem prietenul din state
       setFriends((prev) => prev.filter((f) => f._id !== friendId));
     } catch (err) {
       console.error("Eroare la fetch DELETE prieten:", err);
@@ -36,31 +34,37 @@ export default function FriendList({ initialFriends }) {
       {friends.map((friend) => (
         <li
           key={friend._id}
-          className="flex items-center justify-between bg-gray-800 p-4 rounded-lg shadow"
+          className="flex items-center justify-between bg-gray-800 px-6 py-4 rounded-xl shadow-md hover:shadow-lg transition"
         >
-          <div className="flex items-center">
+          {/* Stânga: Avatar + Nume */}
+          <div className="flex items-center space-x-4">
             {friend.avatar ? (
               <Image
                 src={friend.avatar}
                 alt={`${friend.username} avatar`}
                 width={48}
                 height={48}
-                className="rounded-full mr-4 border-2 border-pink-500"
+                className="rounded-full border-2 border-purple-500 shadow"
               />
             ) : (
-              <div className="w-12 h-12 bg-gray-700 rounded-full mr-4" />
+              <div className="w-12 h-12 rounded-full bg-gray-700 flex items-center justify-center text-white font-bold text-lg shadow">
+                {friend.username[0]?.toUpperCase() || "?"}
+              </div>
             )}
-            <span className="text-white font-medium text-lg">{friend.username}</span>
+
+            <span className="text-lg font-semibold text-white">{friend.username}</span>
           </div>
-          <div className="flex gap-2">
+
+          {/* Dreapta: Acțiuni */}
+          <div className="flex space-x-2">
             <Link href={`/chat/${friend._id}`}>
-                <button className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition">
-                  Mesaje
-                </button>
-              </Link>
+              <button className="bg-gradient-to-r from-blue-500 to-blue-600 hover:brightness-110 text-white font-semibold px-4 py-1.5 rounded-lg text-sm transition">
+                Mesaje
+              </button>
+            </Link>
             <button
               onClick={() => handleDelete(friend._id)}
-              className="bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg transition"
+              className="bg-red-600 hover:bg-red-700 text-white font-semibold px-4 py-1.5 rounded-lg text-sm transition"
             >
               Șterge prieten
             </button>

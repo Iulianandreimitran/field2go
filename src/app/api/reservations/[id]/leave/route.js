@@ -6,7 +6,7 @@ import Reservation from "@/models/Reservation";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
 export async function DELETE(req, context) {
-  // Conectare DB + sesiune
+
   await dbConnect();
   const session = await getServerSession(authOptions);
   if (!session?.user) {
@@ -15,7 +15,7 @@ export async function DELETE(req, context) {
   const currentUserId = session.user.id;
   const { id: reservationId } = context.params;
 
-  // Găsim rezervarea
+
   const reservation = await Reservation.findById(reservationId);
   if (!reservation) {
     return NextResponse.json({ error: "Reservation not found" }, { status: 404 });
@@ -32,11 +32,11 @@ export async function DELETE(req, context) {
 
   try {
     if (isOwner) {
-      // Dacă owner-ul alege „leave”, ștergem rezervarea complet
+
       await Reservation.deleteOne({ _id: reservationId });
       return NextResponse.json({ message: "Rezervarea a fost ștearsă." });
     } else {
-      // Dacă e doar participant, îl scoatem din listă
+
       reservation.participants = reservation.participants.filter(
         (u) => u.toString() !== currentUserId
       );

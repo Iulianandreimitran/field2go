@@ -21,12 +21,12 @@ export async function POST(req, { params }) {
   if (!reservation.isPublic) {
     return NextResponse.json({ error: 'Reservation is not public' }, { status: 403 });
   }
-  // Verifică să nu fie deja participant
+
   const alreadyParticipant = reservation.participants.some(uid => uid.toString() === currentUserId);
   if (alreadyParticipant) {
     return NextResponse.json({ error: 'Already joined' }, { status: 400 });
   }
-  // Adaugă userul la participanți
+
   reservation.participants.push(currentUserId);
   await reservation.save();
   return NextResponse.json({ message: 'Joined reservation successfully' });

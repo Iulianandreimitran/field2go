@@ -4,7 +4,6 @@ import Field from "../../../../models/Field";
 import { getServerSession } from "next-auth";
 import { authOptions } from "../../auth/[...nextauth]/route";
 
-// GET – Obține teren după ID
 export async function GET(_, { params }) {
   const { id } = params;
   await dbConnect();
@@ -21,7 +20,6 @@ export async function GET(_, { params }) {
   }
 }
 
-// PUT – Actualizează un teren
 export async function PUT(request, { params }) {
   const { id } = params;
   await dbConnect();
@@ -52,7 +50,6 @@ export async function PUT(request, { params }) {
   }
 }
 
-// DELETE – Șterge un teren
 export async function DELETE(_, { params }) {
   const { id } = params;
   await dbConnect();

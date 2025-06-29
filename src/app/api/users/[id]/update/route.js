@@ -1,30 +1,31 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import { authOptions } from "../../api/auth/[...nextauth]/route";
-import dbConnect from "../../../utils/dbConnect";
-import User from "../../../models/User";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import dbConnect from "../../../../../utils/dbConnect";
+import User from "../../../../../models/User";
 import bcrypt from "bcryptjs";
 import fs from "fs";
 import path from "path";
 
-// Debifează bodyParser și permite multipart upload
 export const config = {
   api: {
     bodyParser: false,
   },
 };
 
-export async function PATCH(request) {
+export async function PATCH(request, { params }) {
   await dbConnect();
 
-  // autentificare NextAuth
   const session = await getServerSession(authOptions);
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-  const userId = session.user.id;
 
-  // extragem FormData
+  const userId = params.id;
+  if (session.user.id !== userId) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
   const formData = await request.formData();
   const username = formData.get("username");
   const email = formData.get("email");
@@ -42,7 +43,6 @@ export async function PATCH(request) {
     return NextResponse.json({ error: "User not found" }, { status: 404 });
   }
 
-  // schimbare parolă
   if (newPassword) {
     if (!currentPassword) {
       return NextResponse.json({ error: "Parola actuală este necesară." }, { status: 400 });
@@ -54,7 +54,6 @@ export async function PATCH(request) {
     user.password = await bcrypt.hash(newPassword, 10);
   }
 
-  // proces avatar
   if (avatarFile && avatarFile.size) {
     const buffer = Buffer.from(await avatarFile.arrayBuffer());
     const fileName = `${Date.now()}-${avatarFile.name}`;
@@ -64,11 +63,9 @@ export async function PATCH(request) {
     user.avatar = `/uploads/${fileName}`;
   }
 
-  // actualizează câmpuri
   user.username = username;
   user.email = email;
   user.bio = bio;
-
   await user.save();
 
   return NextResponse.json({

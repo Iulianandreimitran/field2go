@@ -24,15 +24,12 @@ export async function POST(request, { params }) {
     }
 
     const userId = session.user.id;
-    // Only the receiver can accept the request
     if (friendRequest.receiver.toString() !== userId) {
       return NextResponse.json({ error: "Nu ești autorizat să accepți această cerere de prietenie." }, { status: 403 });
     }
 
     const senderId = friendRequest.sender.toString();
-    const receiverId = friendRequest.receiver.toString(); // (should equal userId)
-
-    // Add each user to the other's friends list (assuming User model has a 'friends' array)
+    const receiverId = friendRequest.receiver.toString(); 
     await User.updateOne(
       { _id: senderId },
       { $addToSet: { friends: receiverId } }
@@ -42,7 +39,6 @@ export async function POST(request, { params }) {
       { $addToSet: { friends: senderId } }
     );
 
-    // Remove this friend request and any duplicate/opposite request (if it exists)
     await FriendRequest.deleteMany({
       $or: [
         { _id: requestId },

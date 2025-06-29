@@ -13,7 +13,6 @@ export default function PaymentPage() {
   const [message, setMessage] = useState("Inițializare plată...");
 
   useEffect(() => {
-    // Dacă nu avem reservationId în URL, afișăm mesaj de eroare
     if (!reservationId) {
       setMessage("Date insuficiente pentru plată.");
       return;
@@ -21,7 +20,6 @@ export default function PaymentPage() {
 
     const createCheckoutSession = async () => {
       try {
-        // Trimitem doar reservationId; backend-ul va calcula suma
         const res = await fetch("/api/stripe/checkout", {
           method: "POST",
           headers: { "Content-Type": "application/json" },

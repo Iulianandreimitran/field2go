@@ -24,12 +24,12 @@ export async function DELETE(request, { params }) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    // Scoatem friendId din friends-ul userului curent
+
     await User.findByIdAndUpdate(currentUserId, {
       $pull: { friends: friendId }
     });
 
-    // Scoatem currentUserId din friends-ul prietenului
+
     await User.findByIdAndUpdate(friendId, {
       $pull: { friends: currentUserId }
     });

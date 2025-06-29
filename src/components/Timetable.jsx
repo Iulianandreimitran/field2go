@@ -23,12 +23,10 @@ export default function Timetable({ fieldId, date, startHour = 8, endHour = 22, 
       }
       setLoading(true);
       try {
-        // Fetch rezervările pentru acest teren și această dată
         const res = await fetch(`/api/reservations?field=${fieldId}&date=${date}`, {
           credentials: "include"
         });
         const data = await res.json();
-        // Presupunem că API-ul returnează direct un array de rezervări
         if (Array.isArray(data)) {
           setReservations(data);
         } else {
@@ -44,36 +42,27 @@ export default function Timetable({ fieldId, date, startHour = 8, endHour = 22, 
     loadReservations();
   }, [fieldId, date]);
 
-  // Construim lista de sloturi orare: { start: hour, end: hour + 1 }
+
   const slots = [];
   for (let hour = startHour; hour < endHour; hour++) {
     slots.push({ start: hour, end: hour + 1 });
   }
 
-  // Verifică dacă slotul este ocupat: 
-  // comparăm intervalul [slot.start, slot.end] cu intervalul fiecărei rezervări
+
   const isSlotReserved = (slot) => {
-    if (loading) return false; // dacă încă încărcăm, considerăm implicit liber
+    if (loading) return false; 
 
     return reservations.some((res) => {
-      // Fiecare res are:
-      //   res.date      (ex: "2025-06-21")
-      //   res.startTime (ex: "14:00")
-      //   res.duration  (număr de ore, ex: 2)
-      //
-      // Reconstruim obiectul Date în JS pe baza datei+orei stocate:
       const [year, month, day] = res.date.split("-").map((x) => parseInt(x, 10));
       const [rh, rm] = res.startTime.split(":").map((x) => parseInt(x, 10));
       const resStart = new Date(year, month - 1, day, rh, rm, 0);
-      // Calculăm sfârșitul rezervării în date locale:
+
       const resEnd = new Date(resStart);
       resEnd.setHours(resEnd.getHours() + res.duration);
 
-      // Slotul curent:
       const slotStart = new Date(year, month - 1, day, slot.start, 0, 0);
       const slotEnd = new Date(year, month - 1, day, slot.end, 0, 0);
 
-      // Dacă intervalele se suprapun => ocupat
       return resStart < slotEnd && resEnd > slotStart;
     });
   };

@@ -12,10 +12,8 @@ export async function GET(request) {
     dateParam === "today"
       ? new Date().toISOString().substring(0, 10)
       : dateParam;
-  // Găsește rezervările din acea zi
   const reservations = await Reservation.find({ reservedDate: dateStr });
   const reservedIds = reservations.map((r) => r.field.toString());
-  // Returnează terenurile care NU sunt rezervate
   const available = await Field.find({ _id: { $nin: reservedIds } });
   return NextResponse.json(available);
 }

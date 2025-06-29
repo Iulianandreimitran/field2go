@@ -15,7 +15,6 @@ export async function POST(req) {
       return NextResponse.json({ error: "Missing reservationId" }, { status: 400 });
     }
 
-    // Găseşte rezervarea creată cu status 'pending'
     const reservation = await Reservation.findById(reservationId).populate("field");
     if (!reservation) {
       return NextResponse.json({ error: "Reservation not found" }, { status: 404 });
@@ -25,7 +24,6 @@ export async function POST(req) {
       return NextResponse.json({ error: "Field not found" }, { status: 404 });
     }
 
-    // Calculează total: pricePerHour * durata * 100
     const hours = reservation.duration || 1;
     const computedAmount = Math.round(field.pricePerHour * hours * 100);
 
@@ -35,7 +33,6 @@ export async function POST(req) {
 
     const { origin } = new URL(req.url);
 
-    // Creare sesiune Stripe Checkout
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
       line_items: [
@@ -57,8 +54,8 @@ export async function POST(req) {
         reservationId: reservation._id.toString(),
         userId:        reservation.owner.toString(),
         fieldId:       field._id.toString(),
-        date:          reservation.date,        // "YYYY-MM-DD"
-        startTime:     reservation.startTime,   // "14:00"
+        date:          reservation.date,        
+        startTime:     reservation.startTime,   
         duration:      reservation.duration.toString(),
         isPublic:      reservation.isPublic ? "1" : "0"
       },

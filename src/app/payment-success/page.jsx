@@ -9,7 +9,6 @@ export default function PaymentSuccessPage() {
   const router = useRouter();
   const sessionId = searchParams.get("session_id");
   const fieldId   = searchParams.get("fieldId"); 
-    // (dacă vrei să redirecționezi la pagina terenului după confirmare)
 
   const [message, setMessage] = useState("Verificăm plata...");
 
@@ -30,12 +29,10 @@ export default function PaymentSuccessPage() {
 
         if (res.ok && data.reservationId) {
           setMessage("Plata a fost efectuată cu succes!");
-          // După 2s‐3s, redirecționează direct la „My Reservations”
           setTimeout(() => {
             router.push("/my-reservations");
           }, 2000);
         } else {
-          // Dacă serverul a răspuns cu eroare
           setMessage(data.error || "Eroare la verificarea plății.");
         }
       } catch (err) {
